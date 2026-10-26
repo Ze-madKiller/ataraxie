@@ -35,6 +35,8 @@ export const metadata: Metadata = {
   applicationName: SITE_NAME,
   openGraph: { type: "website", locale: "fr_FR", siteName: SITE_NAME },
   twitter: { card: "summary_large_image" },
+  // Google Search Console ownership (URL-prefix property https://e-ataraxie.vercel.app/).
+  verification: { google: "qLYELjLt659MDmVkLAvd4Be8dhg1apwwDPEpmAlkCno" },
 };
 
 export default function RootLayout({
