@@ -1,25 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { recordAttempt, reportQuestion } from "@/app/actions";
 import { choiceState, isAnswerCorrect, scoreSummary, type ChoiceState } from "@/lib/scoring";
 import type { QuestionWithChoices } from "@/lib/types";
+import { ProgressBar } from "./ProgressBar";
 
 type Mode = "practice" | "exam";
 
+// Colour is never the only signal: every revealed state also has an icon and a text tag.
 const choiceStyles: Record<ChoiceState, string> = {
   correct: "border-good bg-good-soft",
   wrong: "border-bad bg-bad-soft",
   missed: "border-warn bg-warn-soft",
-  neutral: "border-line opacity-70",
+  neutral: "border-line",
 };
 
-const choiceTags: Record<ChoiceState, string> = {
-  correct: "Bonne réponse",
-  wrong: "Fausse",
-  missed: "Oubliée",
-  neutral: "",
+const choiceTags: Record<ChoiceState, { icon: string; text: string; color: string } | null> = {
+  correct: { icon: "✓", text: "Bonne réponse", color: "text-good" },
+  wrong: { icon: "✗", text: "Fausse", color: "text-bad" },
+  missed: { icon: "!", text: "Oubliée", color: "text-warn" },
+  neutral: null,
 };
 
 function examLabel(q: QuestionWithChoices) {
@@ -31,48 +33,64 @@ function ChoiceList({
   selected,
   revealed,
   onToggle,
+  labelledBy,
+  celebrate = false,
 }: {
   question: QuestionWithChoices;
   selected: ReadonlySet<string>;
   revealed: boolean;
   onToggle?: (id: string) => void;
+  labelledBy?: string;
+  /** Pulse the correct choices once (live answer that earned the point). */
+  celebrate?: boolean;
 }) {
+  const hintId = useId();
+  const interactive = Boolean(onToggle) && !revealed;
   return (
-    <ul className="space-y-2">
+    <fieldset aria-labelledby={labelledBy} aria-describedby={interactive ? hintId : undefined} className="space-y-2.5">
+      {interactive && (
+        <p id={hintId} className="text-sm text-muted">
+          Plusieurs réponses possibles. Cochez toutes les bonnes.
+        </p>
+      )}
       {question.choices.map((c) => {
         const state = choiceState(c, selected);
         const picked = selected.has(c.id);
+        const tag = revealed ? choiceTags[state] : null;
         return (
-          <li key={c.id}>
-            <button
-              type="button"
-              disabled={revealed || !onToggle}
-              onClick={() => onToggle?.(c.id)}
-              aria-pressed={picked}
-              className={`flex w-full items-start gap-3 rounded-lg border p-3 text-left text-sm transition ${
-                revealed
-                  ? choiceStyles[state]
-                  : picked
-                    ? "border-accent bg-accent-soft"
-                    : "border-line bg-surface hover:border-accent"
+          <label
+            key={c.id}
+            className={`choice ${revealed ? `${choiceStyles[state]} cursor-default` : picked ? "border-accent bg-accent-soft" : ""} ${celebrate && state === "correct" ? "animate-pulse-good" : ""}`}
+          >
+            <input
+              type="checkbox"
+              className="sr-only"
+              checked={picked}
+              disabled={!interactive}
+              onChange={() => onToggle?.(c.id)}
+            />
+            <span
+              aria-hidden
+              className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-[1.5px] text-sm font-semibold ${
+                picked ? "border-accent bg-accent text-on-accent" : "border-control text-muted"
               }`}
             >
-              <span
-                className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border text-xs font-semibold ${
-                  picked ? "border-accent bg-accent text-on-accent" : "border-line"
-                }`}
-              >
-                {c.label}
+              {c.label}
+            </span>
+            <span className="flex-1">
+              <span className="sr-only">{c.label}. </span>
+              {c.text}
+            </span>
+            {tag && (
+              <span className={`shrink-0 text-sm font-semibold ${tag.color}`}>
+                <span aria-hidden>{tag.icon} </span>
+                {tag.text}
               </span>
-              <span className="flex-1">{c.text}</span>
-              {revealed && choiceTags[state] && (
-                <span className="shrink-0 text-xs font-medium">{choiceTags[state]}</span>
-              )}
-            </button>
-          </li>
+            )}
+          </label>
         );
       })}
-    </ul>
+    </fieldset>
   );
 }
 
@@ -80,15 +98,35 @@ function ReportButton({ questionId }: { questionId: string }) {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | string>("idle");
+  const fieldId = useId();
+  const area = useRef<HTMLTextAreaElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const sent = useRef<HTMLParagraphElement>(null);
+  const wasOpen = useRef(false);
 
-  if (status === "sent") return <p className="text-xs text-muted">Merci, le signalement a été envoyé.</p>;
+  // The form replaces the button (and the thank-you replaces the form): move focus along with them.
+  useEffect(() => {
+    if (status === "sent") sent.current?.focus();
+    else if (open) area.current?.focus();
+    else if (wasOpen.current) trigger.current?.focus();
+    wasOpen.current = open;
+  }, [open, status]);
+
+  if (status === "sent") {
+    return (
+      <p ref={sent} tabIndex={-1} role="status" className="text-sm text-muted outline-none">
+        Merci, le signalement a été envoyé.
+      </p>
+    );
+  }
   if (!open) {
     return (
-      <button type="button" onClick={() => setOpen(true)} className="text-xs text-muted underline hover:text-foreground">
+      <button ref={trigger} type="button" onClick={() => setOpen(true)} className="btn btn-quiet -ml-3 text-sm">
         Signaler une erreur
       </button>
     );
   }
+  const failed = status !== "idle" && status !== "sending";
   return (
     <form
       className="space-y-2"
@@ -99,41 +137,89 @@ function ReportButton({ questionId }: { questionId: string }) {
         setStatus(res.error ?? "sent");
       }}
     >
+      <label htmlFor={fieldId} className="field-label">
+        Quelle est l&apos;erreur ?
+      </label>
       <textarea
-        className="input min-h-20"
-        placeholder="Quelle est l'erreur ? (réponse, énoncé, explication…)"
+        id={fieldId}
+        ref={area}
+        className="input min-h-24"
+        placeholder="Réponse, énoncé, explication…"
         value={message}
         onChange={(e) => setMessage(e.target.value)}
         maxLength={2000}
         required
+        aria-invalid={failed || undefined}
       />
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <button type="submit" className="btn btn-ghost" disabled={status === "sending"}>
-          Envoyer
+          {status === "sending" ? "Envoi…" : "Envoyer"}
         </button>
-        {status !== "idle" && status !== "sending" && <span className="text-xs text-bad">{status}</span>}
+        <button type="button" className="btn btn-quiet" onClick={() => setOpen(false)}>
+          Annuler
+        </button>
+        {failed && (
+          <span role="alert" className="text-sm text-bad">
+            {status}
+          </span>
+        )}
       </div>
     </form>
   );
 }
 
-function Correction({ question, correct }: { question: QuestionWithChoices; correct: boolean }) {
+function Correction({
+  question,
+  correct,
+  headingRef,
+  celebrate = false,
+}: {
+  question: QuestionWithChoices;
+  correct: boolean;
+  headingRef?: React.Ref<HTMLHeadingElement>;
+  /** Live answer (not the end-screen review): a small pop and a drawn check mark when correct. */
+  celebrate?: boolean;
+}) {
+  const party = celebrate && correct;
   const correctLabels = question.choices.filter((c) => c.is_correct).map((c) => c.label);
   return (
-    <div className="space-y-3 rounded-lg border border-line bg-background p-4 text-sm">
-      <p className={`font-semibold ${correct ? "text-good" : "text-bad"}`}>
+    <section className="space-y-4 border-t border-line pt-5" aria-label="Correction">
+      <h3
+        ref={headingRef}
+        tabIndex={-1}
+        className={`flex items-center gap-2 text-lg font-semibold outline-none ${correct ? "text-good" : "text-bad"} ${party ? "animate-pop origin-left" : ""}`}
+      >
+        {party ? (
+          <svg aria-hidden width="22" height="22" viewBox="0 0 24 24" className="shrink-0">
+            <circle cx="12" cy="12" r="11" className="fill-good-soft" />
+            <path
+              d="M6.5 12.5l3.5 3.5 7.5-8"
+              pathLength={24}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="animate-draw"
+            />
+          </svg>
+        ) : (
+          <span aria-hidden>{correct ? "✓" : "✗"}</span>
+        )}
         {correct ? "Correct — 1 point" : "Incorrect — 0 point"}
-      </p>
+      </h3>
       <p>
-        <span className="text-muted">Réponse{correctLabels.length > 1 ? "s" : ""} correcte{correctLabels.length > 1 ? "s" : ""} : </span>
+        <span className="text-muted">
+          Réponse{correctLabels.length > 1 ? "s" : ""} correcte{correctLabels.length > 1 ? "s" : ""} :{" "}
+        </span>
         <strong>{correctLabels.join(", ")}</strong>
       </p>
       {question.explanation && <p className="whitespace-pre-line">{question.explanation}</p>}
       {question.lesson_excerpt && (
-        <figure className="border-l-4 border-accent bg-accent-soft p-3">
-          <blockquote className="whitespace-pre-line italic">« {question.lesson_excerpt} »</blockquote>
+        <figure className="citation">
+          <blockquote className="whitespace-pre-line">« {question.lesson_excerpt} »</blockquote>
           {question.lesson_title && (
-            <figcaption className="mt-2 text-xs text-muted">
+            <figcaption>
               Cours : {question.lesson_title}
               {question.lesson_page ? `, p. ${question.lesson_page}` : ""}
             </figcaption>
@@ -141,7 +227,7 @@ function Correction({ question, correct }: { question: QuestionWithChoices; corr
         </figure>
       )}
       <ReportButton questionId={question.id} />
-    </div>
+    </section>
   );
 }
 
@@ -161,6 +247,20 @@ export function Quiz({
   const [answers, setAnswers] = useState<Record<string, string[]>>({});
   const [finished, setFinished] = useState(false);
 
+  // Focus follows the step, so keyboard and screen-reader users never land on <body>.
+  const questionHeading = useRef<HTMLHeadingElement>(null);
+  const correctionHeading = useRef<HTMLHeadingElement>(null);
+  const scoreHeading = useRef<HTMLHeadingElement>(null);
+  const moved = useRef(false);
+  const statementId = useId();
+
+  useEffect(() => {
+    if (!moved.current) return; // not on first render: the page keeps its natural focus
+    if (finished) scoreHeading.current?.focus();
+    else if (revealed) correctionHeading.current?.focus();
+    else questionHeading.current?.focus();
+  }, [index, revealed, finished]);
+
   const results = useMemo(() => {
     return list
       .filter((q) => answers[q.id])
@@ -168,6 +268,7 @@ export function Quiz({
   }, [list, answers]);
 
   const restart = (subset: QuestionWithChoices[]) => {
+    moved.current = true;
     setList(subset);
     setIndex(0);
     setSelected(new Set());
@@ -180,15 +281,30 @@ export function Quiz({
   if (finished) {
     const summary = scoreSummary(results.map((r) => r.correct));
     const wrong = results.filter((r) => !r.correct);
+    const reviewed = mode === "exam" ? results : wrong;
     return (
-      <div className="space-y-4">
-        <div className="card p-6 text-center">
-          <p className="text-sm text-muted">Score</p>
-          <p className="text-4xl font-semibold">
-            {summary.score}/{summary.total}
-          </p>
-          <p className="mt-1 text-muted">{summary.percent} %</p>
-          <div className="mt-4 flex flex-wrap justify-center gap-2">
+      <div data-quiz className="space-y-6">
+        <section className="card text-center sm:p-10" aria-labelledby="score-title">
+          <p className="eyebrow">Série terminée</p>
+          <h2 id="score-title" ref={scoreHeading} tabIndex={-1} className="mt-2 outline-none">
+            <span className="sr-only">Score : </span>
+            <span className="font-serif text-5xl font-semibold">
+              {summary.score}
+              <span className="text-muted">/{summary.total}</span>
+            </span>
+          </h2>
+          <p className="mt-2 text-lg text-muted">{summary.percent} % de bonnes réponses</p>
+          <ProgressBar
+            className="mx-auto mt-5 max-w-xs"
+            value={summary.score}
+            max={summary.total}
+            label="Score"
+            segments={[
+              { value: summary.score, className: "bg-good" },
+              { value: summary.total - summary.score, className: "bg-bad" },
+            ]}
+          />
+          <div className="mt-6 flex flex-col justify-center gap-2 sm:flex-row">
             {wrong.length > 0 && (
               <button type="button" className="btn btn-primary" onClick={() => restart(wrong.map((r) => r.q))}>
                 Refaire les {wrong.length} erreur{wrong.length > 1 ? "s" : ""}
@@ -197,26 +313,41 @@ export function Quiz({
             <button type="button" className="btn btn-ghost" onClick={() => restart(list)}>
               Recommencer
             </button>
-            <Link href={`/modules/${moduleSlug}`} className="btn btn-ghost">
+            <Link href={`/modules/${moduleSlug}`} className="btn btn-quiet">
               Retour au module
             </Link>
           </div>
-        </div>
+        </section>
 
-        {(mode === "exam" ? results : wrong).map(({ q, correct }, i) => (
-          <details key={q.id} className="card p-4" open={mode === "exam" && !correct}>
-            <summary className="cursor-pointer text-sm">
-              <span className={correct ? "text-good" : "text-bad"}>{correct ? "✓" : "✗"}</span>{" "}
-              <span className="font-medium">Question {i + 1}</span>{" "}
-              <span className="text-muted">{examLabel(q)}</span>
-            </summary>
-            <div className="mt-3 space-y-3">
-              <p className="whitespace-pre-line">{q.statement}</p>
-              <ChoiceList question={q} selected={new Set(answers[q.id])} revealed />
-              <Correction question={q} correct={correct} />
-            </div>
-          </details>
-        ))}
+        {reviewed.length > 0 && (
+          <section className="space-y-3" aria-labelledby="review-title">
+            <h2 id="review-title" className="heading">
+              {mode === "exam" ? "Toutes les corrections" : "Vos erreurs"}
+            </h2>
+            {reviewed.map(({ q, correct }) => (
+              <details key={q.id} className="card group" open={mode === "exam" && !correct}>
+                <summary className="flex min-h-11 cursor-pointer list-none items-center gap-3 [&::-webkit-details-marker]:hidden">
+                  <span className={`font-semibold ${correct ? "text-good" : "text-bad"}`}>
+                    <span aria-hidden>{correct ? "✓" : "✗"}</span>
+                    <span className="sr-only">{correct ? "Correct" : "Incorrect"}</span>
+                  </span>
+                  <span className="font-medium">Question {list.indexOf(q) + 1}</span>
+                  <span className="text-sm text-muted">{examLabel(q)}</span>
+                  <span aria-hidden className="ml-auto text-muted transition group-open:rotate-180">
+                    ▾
+                  </span>
+                </summary>
+                <div className="mt-4 space-y-4">
+                  <p id={`review-${q.id}`} className="whitespace-pre-line font-medium">
+                    {q.statement}
+                  </p>
+                  <ChoiceList question={q} selected={new Set(answers[q.id])} revealed labelledBy={`review-${q.id}`} />
+                  <Correction question={q} correct={correct} />
+                </div>
+              </details>
+            ))}
+          </section>
+        )}
       </div>
     );
   }
@@ -234,6 +365,7 @@ export function Quiz({
     });
 
   const goNext = () => {
+    moved.current = true;
     if (isLast) {
       setFinished(true);
       window.scrollTo({ top: 0 });
@@ -246,6 +378,7 @@ export function Quiz({
   };
 
   const validate = () => {
+    moved.current = true;
     // Saved to the account (progress on every device + admin statistics). Never blocks the quiz.
     recordAttempt({ questionId: q.id, selected: [...selected], mode }).catch(() => {});
     setAnswers((prev) => ({ ...prev, [q.id]: [...selected] }));
@@ -254,29 +387,54 @@ export function Quiz({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between text-sm text-muted">
-        <span>
-          Question {index + 1}/{list.length}
-        </span>
-        <span>{examLabel(q)}</span>
-      </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-line">
-        <div className="h-full bg-accent transition-all" style={{ width: `${(index / list.length) * 100}%` }} />
+    <div data-quiz className="space-y-4 pb-24 sm:pb-0">
+      <div className="space-y-2">
+        <div className="flex items-center justify-between gap-3 text-sm text-muted">
+          <span>
+            Question <strong className="text-foreground">{index + 1}</strong> sur {list.length}
+            {mode === "exam" && " · mode examen"}
+          </span>
+          <span>{examLabel(q)}</span>
+        </div>
+        <ProgressBar value={index + 1} max={list.length} label="Avancement de la série" />
       </div>
 
-      <div className="card space-y-4 p-5">
-        <p className="whitespace-pre-line font-medium">{q.statement}</p>
-        <ChoiceList question={q} selected={selected} revealed={revealed} onToggle={toggle} />
-        {revealed && <Correction question={q} correct={answeredCorrectly} />}
-        <div className="flex justify-end">
+      <article className="card space-y-5">
+        <h2
+          id={statementId}
+          ref={questionHeading}
+          tabIndex={-1}
+          className="whitespace-pre-line text-[1.0625rem] leading-relaxed font-medium outline-none"
+        >
+          <span className="sr-only">Question {index + 1}. </span>
+          {q.statement}
+        </h2>
+        <ChoiceList
+          question={q}
+          selected={selected}
+          revealed={revealed}
+          onToggle={toggle}
+          labelledBy={statementId}
+          celebrate={answeredCorrectly}
+        />
+        {revealed && <Correction question={q} correct={answeredCorrectly} headingRef={correctionHeading} celebrate />}
+      </article>
+
+      {/* Primary action under the thumb on phones, inline on larger screens. */}
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+        <div className="mx-auto flex max-w-5xl justify-end">
           {revealed ? (
-            <button type="button" className="btn btn-primary" onClick={goNext}>
-              {isLast ? "Voir le score" : "Question suivante"}
+            <button type="button" className="btn btn-primary btn-lg w-full sm:w-auto" onClick={goNext}>
+              {isLast ? "Voir le score" : "Question suivante →"}
             </button>
           ) : (
-            <button type="button" className="btn btn-primary" onClick={validate} disabled={selected.size === 0}>
-              Valider
+            <button
+              type="button"
+              className="btn btn-primary btn-lg w-full sm:w-auto"
+              onClick={validate}
+              disabled={selected.size === 0}
+            >
+              {mode === "exam" && isLast ? "Valider et voir le score" : "Valider"}
             </button>
           )}
         </div>

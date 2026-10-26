@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { safeNext } from "@/lib/semesters";
+import { PasswordInput } from "@/components/PasswordInput";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
+import { refreshViewer } from "@/components/useViewer";
 
 export function SignInForm() {
   const router = useRouter();
@@ -26,7 +28,7 @@ export function SignInForm() {
 
   return (
     <form
-      className="card mx-auto max-w-md space-y-4 p-6"
+      className="card mx-auto max-w-md space-y-5 sm:p-8"
       onSubmit={async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -42,36 +44,35 @@ export function SignInForm() {
           return;
         }
         // Read here rather than with useSearchParams so the page needs no Suspense boundary.
+        await refreshViewer();
         router.push(safeNext(new URLSearchParams(window.location.search).get("next")));
         router.refresh();
       }}
     >
-      <h1 className="text-xl font-semibold">Se connecter</h1>
-      <label className="block text-sm">
-        <span className="mb-1 block text-muted">Email</span>
-        <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required />
+      <h1 className="title">Se connecter</h1>
+      <label className="field">
+        <span className="field-label">Email</span>
+        <input className="input" type="email" spellCheck={false} value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required />
       </label>
-      <label className="block text-sm">
-        <span className="mb-1 block text-muted">Mot de passe</span>
-        <input
-          className="input"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          autoComplete="current-password"
-          required
-        />
-      </label>
-      {error && <p className="text-sm text-bad">{error}</p>}
-      {info && <p className="text-sm text-good">{info}</p>}
+      <PasswordInput label="Mot de passe" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required />
+      {error && (
+        <p role="alert" className="notice notice-bad">
+          {error}
+        </p>
+      )}
+      {info && (
+        <p role="status" className="notice notice-good">
+          {info}
+        </p>
+      )}
       <button type="submit" className="btn btn-primary w-full" disabled={loading}>
         {loading ? "Connexion…" : "Se connecter"}
       </button>
       <div className="flex flex-wrap justify-between gap-2 text-sm">
-        <button type="button" onClick={resetPassword} className="text-muted underline hover:text-foreground">
+        <button type="button" onClick={resetPassword} className="link-quiet inline-flex min-h-11 items-center underline">
           Mot de passe oublié ?
         </button>
-        <Link href="/inscription" className="text-accent underline">
+        <Link href="/inscription" className="inline-flex min-h-11 items-center font-medium text-accent underline">
           Créer un compte
         </Link>
       </div>

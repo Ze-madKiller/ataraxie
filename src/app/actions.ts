@@ -1,10 +1,19 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getUser } from "@/lib/auth";
+import { getUser, isAdmin } from "@/lib/auth";
 import { isAnswerCorrect } from "@/lib/scoring";
 import { parseSemester } from "@/lib/semesters";
 import { createSessionClient } from "@/lib/supabase/server";
+
+/** Header and home CTA: who is browsing. Called from the browser so those pages can stay static. */
+export async function getViewer(): Promise<{ signedIn: boolean; admin: boolean }> {
+  const user = await getUser();
+  if (!user) return { signedIn: false, admin: false };
+  // A failed admin lookup must not make the header look signed out.
+  const admin = await isAdmin(user.id).catch(() => false);
+  return { signedIn: true, admin };
+}
 
 /** "Signaler une erreur" button. RLS only allows logged-in users to report approved questions. */
 export async function reportQuestion(questionId: string, message: string): Promise<{ error?: string }> {

@@ -4,7 +4,7 @@ import { SignOutButton } from "./SignOutButton";
 /** Shown on /inscription and /connexion when a session is already open, so the forms never act on top of it. */
 export function AlreadySignedIn({ email, next }: { email: string; next: "/inscription" | "/connexion" }) {
   return (
-    <div className="card mx-auto max-w-md space-y-4 p-6">
+    <div className="card mx-auto max-w-md space-y-5 sm:p-8">
       <p>
         Vous êtes connecté en tant que <strong>{email}</strong>.
       </p>

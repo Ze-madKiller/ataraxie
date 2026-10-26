@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { SEMESTERS, semesterLabel } from "@/lib/semesters";
+import { SEMESTERS, safeNext, semesterLabel } from "@/lib/semesters";
+import { PasswordInput } from "@/components/PasswordInput";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
+import { refreshViewer } from "@/components/useViewer";
 
 function frenchAuthError(message: string): string {
   if (/already registered|already exists/i.test(message)) return "Un compte existe déjà avec cet email.";
@@ -26,8 +28,8 @@ export function SignUpForm() {
 
   if (sentTo) {
     return (
-      <div className="card mx-auto max-w-md space-y-3 p-6">
-        <h1 className="text-xl font-semibold">Vérifiez votre boîte mail</h1>
+      <div className="card mx-auto max-w-md space-y-5 sm:p-8">
+        <h1 className="title">Vérifiez votre boîte mail</h1>
         <p className="text-sm text-muted">
           Un lien de confirmation a été envoyé à <strong className="text-foreground">{sentTo}</strong>. Cliquez dessus
           pour activer votre compte. Pensez à regarder dans les spams.
@@ -38,7 +40,7 @@ export function SignUpForm() {
 
   return (
     <form
-      className="card mx-auto max-w-md space-y-4 p-6"
+      className="card mx-auto max-w-md space-y-5 sm:p-8"
       onSubmit={async (e) => {
         e.preventDefault();
         if (!semester) return setError("Choisissez votre semestre.");
@@ -57,7 +59,9 @@ export function SignUpForm() {
         setLoading(false);
         if (error) return setError(frenchAuthError(error.message));
         if (data.session) {
-          router.push("/modules");
+          // Back to the public module page the visitor came from, if any.
+          await refreshViewer();
+          router.push(safeNext(new URLSearchParams(window.location.search).get("next")));
           router.refresh();
         } else if (data.user?.identities?.length === 0) {
           // With email confirmation on, Supabase hides existing accounts behind a fake success.
@@ -68,30 +72,20 @@ export function SignUpForm() {
       }}
     >
       <div>
-        <h1 className="text-xl font-semibold">Créer un compte</h1>
+        <h1 className="title">Créer un compte</h1>
         <p className="text-sm text-muted">Gratuit. Vous pourrez changer de semestre plus tard.</p>
       </div>
-      <label className="block text-sm">
-        <span className="mb-1 block text-muted">Nom complet</span>
+      <label className="field">
+        <span className="field-label">Nom complet</span>
         <input className="input" value={fullName} onChange={(e) => setFullName(e.target.value)} autoComplete="name" required />
       </label>
-      <label className="block text-sm">
-        <span className="mb-1 block text-muted">Email</span>
-        <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required />
+      <label className="field">
+        <span className="field-label">Email</span>
+        <input className="input" type="email" spellCheck={false} value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required />
       </label>
-      <label className="block text-sm">
-        <span className="mb-1 block text-muted">Mot de passe (8 caractères minimum)</span>
-        <input
-          className="input"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          autoComplete="new-password"
-          required
-        />
-      </label>
-      <label className="block text-sm">
-        <span className="mb-1 block text-muted">Votre semestre</span>
+      <PasswordInput label="Mot de passe" hint="8 caractères minimum." value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" minLength={8} required />
+      <label className="field">
+        <span className="field-label">Votre semestre</span>
         <select className="input" value={semester} onChange={(e) => setSemester(e.target.value)} required>
           <option value="" disabled>
             Choisir…
@@ -103,13 +97,17 @@ export function SignUpForm() {
           ))}
         </select>
       </label>
-      {error && <p className="text-sm text-bad">{error}</p>}
+      {error && (
+        <p role="alert" className="notice notice-bad">
+          {error}
+        </p>
+      )}
       <button type="submit" className="btn btn-primary w-full" disabled={loading}>
         {loading ? "Création…" : "Créer mon compte"}
       </button>
       <p className="text-center text-sm text-muted">
         Déjà inscrit ?{" "}
-        <Link href="/connexion" className="text-accent underline">
+        <Link href="/connexion" className="font-medium text-accent underline">
           Se connecter
         </Link>
       </p>

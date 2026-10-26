@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
+import { refreshViewer } from "@/components/useViewer";
 
 /** Target of the sign-up confirmation email: opens the session from the link, then goes to the modules. */
 export default function ConfirmPage() {
@@ -27,6 +28,7 @@ export default function ConfirmPage() {
         data: { user },
       } = await supabase.auth.getUser();
       if (user) {
+        await refreshViewer();
         router.replace("/modules");
         router.refresh();
       } else {
@@ -35,9 +37,9 @@ export default function ConfirmPage() {
     })();
   }, [router]);
 
-  if (!failed) return <p className="card mx-auto max-w-md p-6 text-muted">Activation du compte…</p>;
+  if (!failed) return <p className="card mx-auto max-w-md text-muted">Activation du compte…</p>;
   return (
-    <div className="card mx-auto max-w-md space-y-3 p-6">
+    <div className="card mx-auto max-w-md space-y-5 sm:p-8">
       <p>Ce lien a expiré ou a déjà été utilisé. Si votre compte est déjà activé, connectez-vous.</p>
       <Link href="/connexion" className="btn btn-primary">
         Se connecter

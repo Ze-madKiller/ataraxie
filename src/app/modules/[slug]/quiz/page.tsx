@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Quiz } from "@/components/Quiz";
@@ -5,6 +6,8 @@ import { requireUser } from "@/lib/auth";
 import { loadModuleProgress } from "@/lib/progress-server";
 import { createSessionClient } from "@/lib/supabase/server";
 import type { Module, QuestionWithChoices } from "@/lib/types";
+
+export const metadata: Metadata = { title: "Série de QCM", robots: { index: false, follow: false } };
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -58,11 +61,14 @@ export default async function QuizPage({ params, searchParams }: { params: Promi
 
   return (
     <div className="space-y-4">
-      <Link href={`/modules/${mod.slug}`} className="text-sm text-muted hover:text-foreground">
-        ← {mod.name}
-      </Link>
+      <div>
+        <Link href={`/modules/${mod.slug}`} className="link-quiet inline-flex min-h-11 items-center text-sm">
+          ← Retour au module
+        </Link>
+        <h1 className="title">{mod.name}</h1>
+      </div>
       {questions.length === 0 ? (
-        <p className="card p-6 text-muted">
+        <p className="card text-muted">
           {onlyWrong ? "Aucune erreur à revoir. Bravo !" : "Aucune question pour cette sélection."}
         </p>
       ) : (

@@ -14,7 +14,7 @@ export function AccountForm({ fullName, semester }: { fullName: string; semester
 
   return (
     <form
-      className="card space-y-4 p-5"
+      className="card space-y-5"
       onSubmit={(e) => {
         e.preventDefault();
         startTransition(async () => {
@@ -27,12 +27,12 @@ export function AccountForm({ fullName, semester }: { fullName: string; semester
         });
       }}
     >
-      <label className="block text-sm">
-        <span className="mb-1 block text-muted">Nom complet</span>
-        <input className="input" value={name} onChange={(e) => setName(e.target.value)} />
+      <label className="field">
+        <span className="field-label">Nom complet</span>
+        <input className="input" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
       </label>
-      <label className="block text-sm">
-        <span className="mb-1 block text-muted">Semestre actuel</span>
+      <label className="field">
+        <span className="field-label">Semestre actuel</span>
         <select className="input" value={sem} onChange={(e) => setSem(e.target.value)} required>
           <option value="" disabled>
             Choisir…
@@ -49,7 +49,7 @@ export function AccountForm({ fullName, semester }: { fullName: string; semester
           {pending ? "Enregistrement…" : "Enregistrer"}
         </button>
         {message && (
-          <span className={`text-sm ${message.kind === "error" ? "text-bad" : "text-good"}`}>{message.text}</span>
+          <span role={message.kind === "error" ? "alert" : "status"} className={`text-sm ${message.kind === "error" ? "text-bad" : "text-good"}`}>{message.text}</span>
         )}
       </div>
     </form>

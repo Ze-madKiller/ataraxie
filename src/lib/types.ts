@@ -70,6 +70,7 @@ export interface Question {
   ai_confidence: Confidence | null;
   ai_notes: string | null;
   status: QuestionStatus;
+  is_sample?: boolean;
   updated_at?: string;
 }
 

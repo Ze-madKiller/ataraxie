@@ -11,7 +11,7 @@ export default function DemoPage() {
       <p className="rounded-lg bg-warn-soft p-3 text-sm text-warn">
         Aperçu avec des questions d&apos;exemple. <Link href="/demo/review" className="underline">Voir l&apos;écran de vérification admin →</Link>
       </p>
-      <h1 className="text-2xl font-semibold tracking-tight">Cardiologie (démo)</h1>
+      <h1 className="title">Cardiologie (démo)</h1>
       <Quiz moduleSlug="demo" questions={demoQuestions} mode="practice" />
     </div>
   );
