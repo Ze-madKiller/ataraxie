@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Quiz } from "@/components/Quiz";
@@ -5,6 +6,8 @@ import { requireUser } from "@/lib/auth";
 import { loadModuleProgress } from "@/lib/progress-server";
 import { createSessionClient } from "@/lib/supabase/server";
 import type { Module, QuestionWithChoices } from "@/lib/types";
+
+export const metadata: Metadata = { title: "Série de QCM", robots: { index: false, follow: false } };
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 

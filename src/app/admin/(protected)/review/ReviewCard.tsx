@@ -37,6 +37,7 @@ export function ReviewCard({
   const [excerpt, setExcerpt] = useState(question.lesson_excerpt ?? "");
   const [lessonTitle, setLessonTitle] = useState(question.lesson_title ?? "");
   const [lessonPage, setLessonPage] = useState(question.lesson_page?.toString() ?? "");
+  const [isSample, setIsSample] = useState(question.is_sample ?? false);
   const [showPdf, setShowPdf] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [message, setMessage] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
@@ -59,6 +60,7 @@ export function ReviewCard({
         lesson_page: /^\d+$/.test(lessonPage) ? Number(lessonPage) : null,
         choices,
         status,
+        is_sample: isSample,
       });
       if (res.error) setMessage({ kind: "error", text: res.error });
       else {
@@ -191,6 +193,16 @@ export function ReviewCard({
           <input className="input" placeholder="Page" inputMode="numeric" value={lessonPage} onChange={(e) => setLessonPage(e.target.value)} />
         </div>
       </div>
+
+      <label className="flex items-start gap-2 text-sm">
+        <input type="checkbox" className="mt-1" checked={isSample} onChange={(e) => setIsSample(e.target.checked)} />
+        <span>
+          <strong>Question exemple (publique)</strong>
+          <span className="block text-muted">
+            Visible avec sa correction sur la page publique du module, sans compte. 3 au maximum par module.
+          </span>
+        </span>
+      </label>
 
       {aiEnabled && question.exam_document_id && (
       <details className="rounded-lg border border-line p-3 text-sm">

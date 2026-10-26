@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { requireAdmin } from "@/lib/auth";
 import { parseSemester } from "@/lib/semesters";
 import { slugify } from "@/lib/slug";
@@ -23,6 +23,7 @@ export async function createModule(formData: FormData): Promise<void> {
   if (error) throw new Error(error.code === "23505" ? `A module named "${name}" already exists.` : error.message);
   revalidatePath("/admin");
   revalidatePath("/");
+  revalidateTag("public-content");
 }
 
 export async function updateModuleSemester(formData: FormData): Promise<void> {
@@ -35,6 +36,7 @@ export async function updateModuleSemester(formData: FormData): Promise<void> {
   if (error) throw new Error(error.message);
   revalidatePath(`/admin/modules/${id}`);
   revalidatePath("/admin");
+  revalidateTag("public-content");
 }
 
 export async function createUploadUrl(moduleId: string, filename: string): Promise<{ path: string; token: string }> {
@@ -116,6 +118,8 @@ export interface QuestionEdit {
   lesson_page: number | null;
   choices: { label: string; text: string; is_correct: boolean }[];
   status: QuestionStatus;
+  /** Shown with its correction on the public module page. */
+  is_sample: boolean;
 }
 
 export async function saveQuestion(edit: QuestionEdit): Promise<Result> {
@@ -136,6 +140,7 @@ export async function saveQuestion(edit: QuestionEdit): Promise<Result> {
       lesson_title: edit.lesson_title.trim() || null,
       lesson_page: edit.lesson_page,
       status: edit.status,
+      is_sample: edit.is_sample,
       updated_at: new Date().toISOString(),
     })
     .eq("id", edit.id);
@@ -156,6 +161,7 @@ export async function saveQuestion(edit: QuestionEdit): Promise<Result> {
 
   revalidatePath("/admin/review");
   revalidatePath("/", "layout");
+  revalidateTag("public-content");
   return {};
 }
 
@@ -218,6 +224,7 @@ export async function createQuestion(input: NewQuestion): Promise<Result> {
   revalidatePath(`/admin/modules/${input.moduleId}`);
   revalidatePath("/admin");
   revalidatePath("/", "layout");
+  revalidateTag("public-content");
   return {};
 }
 
@@ -239,6 +246,7 @@ export async function setQuestionStatus(id: string, status: QuestionStatus): Pro
   if (error) return { error: error.message };
   revalidatePath("/admin/review");
   revalidatePath("/", "layout");
+  revalidateTag("public-content");
   return {};
 }
 

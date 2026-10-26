@@ -1,52 +1,95 @@
+import type { Metadata } from "next";
 import Link from "next/link";
-import { getProfile, requireUser } from "@/lib/auth";
+import { ProgressBar } from "@/components/ProgressBar";
+import { getProfile, getUser } from "@/lib/auth";
+import { loadProgressSummary } from "@/lib/progress-server";
+import { getPublicModules, type PublicModule } from "@/lib/public-content";
 import { semesterLabel } from "@/lib/semesters";
-import { createSessionClient } from "@/lib/supabase/server";
-import type { Module } from "@/lib/types";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
-type ModuleWithCount = Module & { questions: { count: number }[] };
 
-function ModuleCard({ m }: { m: ModuleWithCount }) {
-  const count = m.questions[0]?.count ?? 0;
+export const metadata: Metadata = {
+  title: "Modules et annales de QCM — Médecine Fès",
+  description:
+    "Tous les modules de la Faculté de Médecine de Fès, semestre par semestre, avec les QCM des examens passés corrigés par le cours.",
+  alternates: { canonical: "/modules" },
+};
+
+function ModuleCard({ m, done }: { m: PublicModule; done?: number }) {
+  const count = m.questionCount;
   return (
-    <Link href={`/modules/${m.slug}`} className="card block h-full p-5 transition hover:border-accent">
-      <h3 className="font-semibold">{m.name}</h3>
-      {m.description && <p className="mt-1 text-sm text-muted">{m.description}</p>}
-      <p className="mt-3 text-sm font-medium text-accent">
-        {count} question{count > 1 ? "s" : ""}
-      </p>
+    <Link href={`/modules/${m.slug}`} className="card card-link block h-full">
+      <h3 className="heading">{m.name}</h3>
+      {m.description && <p className="mt-1 line-clamp-2 text-sm text-muted">{m.description}</p>}
+      {done !== undefined && count > 0 ? (
+        <div className="mt-4 space-y-1.5">
+          <ProgressBar value={done} max={count} label={`Progression en ${m.name}`} />
+          <p className="text-sm text-muted">
+            {done}/{count} question{count > 1 ? "s" : ""} faite{done > 1 ? "s" : ""}
+          </p>
+        </div>
+      ) : (
+        <p className="mt-4 text-sm font-medium text-accent">
+          {count} question{count > 1 ? "s" : ""}
+        </p>
+      )}
     </Link>
   );
 }
 
+function ModuleGrid({ modules, progress }: { modules: PublicModule[]; progress?: Record<string, number> }) {
+  return (
+    <ul className="grid gap-3 sm:grid-cols-2">
+      {modules.map((m) => (
+        <li key={m.id}>
+          <ModuleCard m={m} done={progress ? (progress[m.id] ?? 0) : undefined} />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function BySemester({ modules, progress }: { modules: PublicModule[]; progress?: Record<string, number> }) {
+  const groups = new Map<number | null, PublicModule[]>();
+  for (const m of modules) groups.set(m.semester, [...(groups.get(m.semester) ?? []), m]);
+  return [...groups.entries()].map(([s, list]) => (
+    <section key={s ?? "all"} className="space-y-3" aria-labelledby={`sem-${s ?? "all"}`}>
+      <h2 id={`sem-${s ?? "all"}`} className="eyebrow">
+        {s ? semesterLabel(s) : "Tous semestres"}
+      </h2>
+      <ModuleGrid modules={list} progress={progress} />
+    </section>
+  ));
+}
+
 export default async function ModulesPage({ searchParams }: { searchParams: SearchParams }) {
-  const user = await requireUser("/modules");
-  const profile = await getProfile(user.id);
-  const sp = await searchParams;
+  const [user, all] = await Promise.all([getUser(), getPublicModules()]);
+
+  if (!user) {
+    return (
+      <div className="space-y-8">
+        <header className="space-y-3">
+          <p className="eyebrow">Faculté de Médecine de Fès</p>
+          <h1 className="display">Modules et annales de QCM</h1>
+          <p className="lead">
+            Choisissez un module pour voir les examens disponibles et des exemples de questions corrigées.
+          </p>
+        </header>
+        {all.length === 0 ? <p className="card text-muted">Les modules arrivent bientôt.</p> : <BySemester modules={all} />}
+      </div>
+    );
+  }
+
+  const [profile, progress, sp] = await Promise.all([getProfile(user.id), loadProgressSummary(), searchParams]);
   const semester = profile?.semester ?? null;
   const showAll = sp.tous === "1" || semester === null;
-
-  const session = await createSessionClient();
-  const { data, error } = await session
-    .from("modules")
-    .select("*, questions(count)")
-    .order("semester", { nullsFirst: false })
-    .order("position");
-  if (error) throw new Error(error.message);
-  // RLS only exposes approved questions, so the counts are what students can practise.
-  const all = (data ?? []) as ModuleWithCount[];
   const visible = showAll ? all : all.filter((m) => m.semester === semester || m.semester === null);
-
-  // When showing everything, group by semester so the list stays readable.
-  const groups = new Map<number | null, ModuleWithCount[]>();
-  for (const m of visible) groups.set(m.semester, [...(groups.get(m.semester) ?? []), m]);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1 className="title">
             {profile?.full_name ? `Bonjour ${profile.full_name.split(" ")[0]}` : "Mes modules"}
           </h1>
           <p className="mt-1 text-muted">
@@ -64,7 +107,7 @@ export default async function ModulesPage({ searchParams }: { searchParams: Sear
       </div>
 
       {semester === null && (
-        <p className="rounded-lg bg-warn-soft p-4 text-sm text-warn">
+        <p className="notice notice-warn">
           Choisissez votre semestre dans{" "}
           <Link href="/compte" className="font-medium underline">
             Mon compte
@@ -74,33 +117,16 @@ export default async function ModulesPage({ searchParams }: { searchParams: Sear
       )}
 
       {visible.length === 0 ? (
-        <div className="card space-y-3 p-6">
+        <div className="card space-y-3">
           <p className="text-muted">Pas encore de module pour ce semestre.</p>
           <Link href="/modules?tous=1" className="btn btn-ghost">
             Voir tous les semestres
           </Link>
         </div>
       ) : showAll ? (
-        [...groups.entries()].map(([s, list]) => (
-          <section key={s ?? "all"} className="space-y-3">
-            <h2 className="font-semibold">{s ? semesterLabel(s) : "Tous semestres"}</h2>
-            <ul className="grid gap-3 sm:grid-cols-2">
-              {list.map((m) => (
-                <li key={m.id}>
-                  <ModuleCard m={m} />
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))
+        <BySemester modules={visible} progress={progress} />
       ) : (
-        <ul className="grid gap-3 sm:grid-cols-2">
-          {visible.map((m) => (
-            <li key={m.id}>
-              <ModuleCard m={m} />
-            </li>
-          ))}
-        </ul>
+        <ModuleGrid modules={visible} progress={progress} />
       )}
     </div>
   );

@@ -27,6 +27,15 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Every page except static files and images.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
+  // Only routes that read the session on the server. Public pages (home, legal) stay static and skip
+  // the Supabase round trip; server actions refresh the session themselves.
+  matcher: [
+    "/modules/:path*",
+    "/compte/:path*",
+    "/admin/:path*",
+    "/api/admin/:path*",
+    "/connexion",
+    "/inscription",
+    "/auth/:path*",
+  ],
 };

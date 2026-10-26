@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { SEMESTERS, semesterLabel } from "@/lib/semesters";
+import { SEMESTERS, safeNext, semesterLabel } from "@/lib/semesters";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 
 function frenchAuthError(message: string): string {
@@ -57,7 +57,8 @@ export function SignUpForm() {
         setLoading(false);
         if (error) return setError(frenchAuthError(error.message));
         if (data.session) {
-          router.push("/modules");
+          // Back to the public module page the visitor came from, if any.
+          router.push(safeNext(new URLSearchParams(window.location.search).get("next")));
           router.refresh();
         } else if (data.user?.identities?.length === 0) {
           // With email confirmation on, Supabase hides existing accounts behind a fake success.

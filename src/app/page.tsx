@@ -1,5 +1,6 @@
-import Link from "next/link";
-import { getUser } from "@/lib/auth";
+import type { Metadata } from "next";
+import { HomeCta } from "@/components/HomeCta";
+import { FACULTY, SITE_DESCRIPTION, SITE_NAME, SITE_URL, jsonLd } from "@/lib/site";
 
 const features = [
   {
@@ -62,14 +63,36 @@ function PreviewCard() {
   );
 }
 
-export default async function Home() {
-  const user = await getUser();
-  const primary = user
-    ? { href: "/modules", label: "Accéder à mes modules" }
-    : { href: "/inscription", label: "Créer mon compte gratuit" };
+// Canonical per page: a canonical on the root layout would be inherited by every page.
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 
+const structuredData = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`,
+      url: SITE_URL,
+      name: SITE_NAME,
+      description: SITE_DESCRIPTION,
+      inLanguage: "fr",
+      publisher: { "@id": `${SITE_URL}/#organization` },
+    },
+    {
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
+      name: SITE_NAME,
+      url: SITE_URL,
+      logo: `${SITE_URL}/apple-icon`,
+      description: `Révision des QCM d'examen pour les étudiants de la ${FACULTY}.`,
+    },
+  ],
+};
+
+export default function Home() {
   return (
     <div className="space-y-16 py-4">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(structuredData) }} />
       <section className="grid items-center gap-10 md:grid-cols-[1.1fr_1fr]">
         <div className="space-y-5">
           <p className="text-sm font-medium text-accent">Pour les étudiants en médecine</p>
@@ -80,16 +103,7 @@ export default async function Home() {
             Les QCM des examens passés de votre faculté, corrigés immédiatement avec l&apos;extrait exact du cours du
             professeur.
           </p>
-          <div className="flex flex-wrap gap-3">
-            <Link href={primary.href} className="btn btn-primary px-5 py-3 text-base">
-              {primary.label}
-            </Link>
-            {!user && (
-              <Link href="/connexion" className="btn btn-ghost px-5 py-3 text-base">
-                J&apos;ai déjà un compte
-              </Link>
-            )}
-          </div>
+          <HomeCta secondary />
         </div>
         <PreviewCard />
       </section>
@@ -125,9 +139,7 @@ export default async function Home() {
           <h2 className="text-xl font-semibold">Prêt à réviser ?</h2>
           <p className="text-sm text-muted">Choisissez votre semestre et commencez par le module de votre choix.</p>
         </div>
-        <Link href={primary.href} className="btn btn-primary px-5 py-3 text-base">
-          {primary.label}
-        </Link>
+        <HomeCta />
       </section>
     </div>
   );

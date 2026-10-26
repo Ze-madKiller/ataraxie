@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import { AuthHashRedirect } from "@/components/AuthHashRedirect";
 import { SiteHeader } from "@/components/SiteHeader";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -10,8 +11,12 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "E-ATARAXIE — Révision des QCM",
-  description: "Révisez les QCM des examens passés, module par module, avec la correction tirée des cours.",
+  metadataBase: new URL(SITE_URL),
+  title: { default: `QCM d'examen corrigés — Médecine Fès | ${SITE_NAME}`, template: `%s | ${SITE_NAME}` },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  openGraph: { type: "website", locale: "fr_FR", siteName: SITE_NAME },
+  twitter: { card: "summary_large_image" },
 };
 
 export default function RootLayout({
