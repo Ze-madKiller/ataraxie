@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
+import { refreshViewer } from "@/components/useViewer";
 
 /** Target of the sign-up confirmation email: opens the session from the link, then goes to the modules. */
 export default function ConfirmPage() {
@@ -27,6 +28,7 @@ export default function ConfirmPage() {
         data: { user },
       } = await supabase.auth.getUser();
       if (user) {
+        refreshViewer();
         router.replace("/modules");
         router.refresh();
       } else {

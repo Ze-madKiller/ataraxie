@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { PasswordInput } from "@/components/PasswordInput";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
+import { refreshViewer } from "@/components/useViewer";
 
 /** Target of Supabase invite / password-reset links: opens the session from the link, then sets a password. */
 export default function SetPasswordPage() {
@@ -65,6 +66,7 @@ export default function SetPasswordPage() {
         const { error } = await createBrowserSupabase().auth.updateUser({ password });
         setSaving(false);
         if (error) return setError(error.message);
+        refreshViewer();
         router.push("/modules");
         router.refresh();
       }}

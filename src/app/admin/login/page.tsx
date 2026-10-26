@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { PasswordInput } from "@/components/PasswordInput";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
+import { refreshViewer } from "@/components/useViewer";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -25,6 +26,7 @@ export default function LoginPage() {
           setError("Email ou mot de passe incorrect.");
           return;
         }
+        refreshViewer();
         router.push("/admin");
         router.refresh();
       }}

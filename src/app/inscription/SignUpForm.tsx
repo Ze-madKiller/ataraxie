@@ -6,6 +6,7 @@ import { useState } from "react";
 import { SEMESTERS, safeNext, semesterLabel } from "@/lib/semesters";
 import { PasswordInput } from "@/components/PasswordInput";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
+import { refreshViewer } from "@/components/useViewer";
 
 function frenchAuthError(message: string): string {
   if (/already registered|already exists/i.test(message)) return "Un compte existe déjà avec cet email.";
@@ -59,6 +60,7 @@ export function SignUpForm() {
         if (error) return setError(frenchAuthError(error.message));
         if (data.session) {
           // Back to the public module page the visitor came from, if any.
+          refreshViewer();
           router.push(safeNext(new URLSearchParams(window.location.search).get("next")));
           router.refresh();
         } else if (data.user?.identities?.length === 0) {

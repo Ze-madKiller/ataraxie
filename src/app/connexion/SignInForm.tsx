@@ -6,6 +6,7 @@ import { useState } from "react";
 import { safeNext } from "@/lib/semesters";
 import { PasswordInput } from "@/components/PasswordInput";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
+import { refreshViewer } from "@/components/useViewer";
 
 export function SignInForm() {
   const router = useRouter();
@@ -43,6 +44,7 @@ export function SignInForm() {
           return;
         }
         // Read here rather than with useSearchParams so the page needs no Suspense boundary.
+        refreshViewer();
         router.push(safeNext(new URLSearchParams(window.location.search).get("next")));
         router.refresh();
       }}

@@ -2,19 +2,24 @@
 
 import { useEffect, useState } from "react";
 import { getViewer } from "@/app/actions";
-import { createBrowserSupabase } from "@/lib/supabase/browser";
 
 export type Viewer = { signedIn: boolean; admin: boolean };
 
-// One shared store for every component that asks (header, home CTA): one request per page load,
-// one auth subscription, and a refetch only when the signed-in user actually changes.
+// One shared store for every component that asks (header, home CTA): one request per page load.
+// Deliberately no Supabase import: it would put the whole Supabase client in every page's first load.
 let current: Viewer | null = null;
 let pending: Promise<void> | null = null;
-let userId: string | null | undefined;
+let lastCookie: boolean | undefined;
 let subscribed = false;
 const listeners = new Set<(v: Viewer) => void>();
 
-function refresh(): Promise<void> {
+/** True when a Supabase auth cookie is present. @supabase/ssr cookies are readable from the page. */
+function hasAuthCookie(): boolean {
+  return /(?:^|;\s*)sb-[^=]+-auth-token(?:\.\d+)?=/.test(document.cookie);
+}
+
+function load(): Promise<void> {
+  lastCookie = hasAuthCookie();
   pending = getViewer()
     .catch(() => ({ signedIn: false, admin: false }))
     .then((v) => {
@@ -24,26 +29,17 @@ function refresh(): Promise<void> {
   return pending;
 }
 
+/** Call after signing in or out in this tab so the header and CTA update without a reload. */
+export function refreshViewer(): void {
+  void load();
+}
+
 function subscribe() {
   if (subscribed) return;
   subscribed = true;
-  const supabase = createBrowserSupabase();
-  supabase.auth.onAuthStateChange((_event, session) => {
-    const id = session?.user.id ?? null;
-    // INITIAL_SESSION sets the baseline; later events (tab refocus, token refresh) only matter on a user change.
-    if (userId !== undefined && id !== userId) refresh();
-    userId = id;
-  });
-  // Sign-in or sign-out in another tab changes the cookies without an event here.
+  // Sign-in or sign-out in another tab changes the cookies: check when the tab becomes visible again.
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState !== "visible") return;
-    supabase.auth.getSession().then(({ data }) => {
-      const id = data.session?.user.id ?? null;
-      if (userId !== undefined && id !== userId) {
-        userId = id;
-        refresh();
-      }
-    });
+    if (document.visibilityState === "visible" && hasAuthCookie() !== lastCookie) void load();
   });
 }
 
@@ -55,7 +51,7 @@ export function useViewer(): Viewer | null {
     listeners.add(setViewer);
     subscribe();
     if (current) setViewer(current);
-    else if (!pending) refresh();
+    else if (!pending) void load();
     return () => {
       listeners.delete(setViewer);
     };

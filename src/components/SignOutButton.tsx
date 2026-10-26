@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { createBrowserSupabase } from "@/lib/supabase/browser";
 
 /**
  * Signs out in the browser, not in a server action: the browser Supabase client keeps the session
@@ -24,6 +23,8 @@ export function SignOutButton({
       disabled={pending}
       onClick={async () => {
         setPending(true);
+        // Loaded on click: keeps the Supabase client out of the header's first-load bundle.
+        const { createBrowserSupabase } = await import("@/lib/supabase/browser");
         const { error } = await createBrowserSupabase().auth.signOut({ scope: "local" });
         if (error) {
           // Session already invalid on the server: drop the auth cookies ourselves.
