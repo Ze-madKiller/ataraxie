@@ -9,11 +9,11 @@ export function HomeCta({ secondary = false }: { secondary?: boolean }) {
   const signedIn = viewer?.signedIn ?? false;
   return (
     <div className="flex flex-wrap gap-3">
-      <Link href={signedIn ? "/modules" : "/inscription"} className="btn btn-primary px-5 py-3 text-base">
+      <Link href={signedIn ? "/modules" : "/inscription"} className="btn btn-primary btn-lg">
         {signedIn ? "Accéder à mes modules" : "Créer mon compte gratuit"}
       </Link>
       {secondary && !signedIn && (
-        <Link href="/connexion" className="btn btn-ghost px-5 py-3 text-base">
+        <Link href="/connexion" className="btn btn-ghost btn-lg">
           J&apos;ai déjà un compte
         </Link>
       )}

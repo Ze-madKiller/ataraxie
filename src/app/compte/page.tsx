@@ -10,13 +10,13 @@ export default async function AccountPage() {
 
   return (
     <div className="mx-auto max-w-md space-y-4">
-      <h1 className="text-2xl font-semibold tracking-tight">Mon compte</h1>
+      <h1 className="title">Mon compte</h1>
 
       <AccountForm fullName={profile?.full_name ?? ""} semester={profile?.semester ?? null} />
 
       <CredentialsForm email={user.email ?? ""} />
 
-      <section className="card space-y-3 p-5 text-sm">
+      <section className="card space-y-3">
         {admin && (
           <Link href="/admin" className="block text-accent underline">
             Administration

@@ -35,9 +35,9 @@ export default function ConfirmPage() {
     })();
   }, [router]);
 
-  if (!failed) return <p className="card mx-auto max-w-md p-6 text-muted">Activation du compte…</p>;
+  if (!failed) return <p className="card mx-auto max-w-md text-muted">Activation du compte…</p>;
   return (
-    <div className="card mx-auto max-w-md space-y-3 p-6">
+    <div className="card mx-auto max-w-md space-y-5 sm:p-8">
       <p>Ce lien a expiré ou a déjà été utilisé. Si votre compte est déjà activé, connectez-vous.</p>
       <Link href="/connexion" className="btn btn-primary">
         Se connecter

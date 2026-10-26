@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { PasswordInput } from "@/components/PasswordInput";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 
 export default function LoginPage() {
@@ -13,7 +14,7 @@ export default function LoginPage() {
 
   return (
     <form
-      className="card mx-auto max-w-sm space-y-4 p-6"
+      className="card mx-auto max-w-sm space-y-5 sm:p-8"
       onSubmit={async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -28,22 +29,17 @@ export default function LoginPage() {
         router.refresh();
       }}
     >
-      <h1 className="text-xl font-semibold">Administration</h1>
-      <label className="block text-sm">
-        <span className="mb-1 block text-muted">Email</span>
-        <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+      <h1 className="title">Administration</h1>
+      <label className="field">
+        <span className="field-label">Email</span>
+        <input className="input" type="email" spellCheck={false} value={email} onChange={(e) => setEmail(e.target.value)} required />
       </label>
-      <label className="block text-sm">
-        <span className="mb-1 block text-muted">Mot de passe</span>
-        <input
-          className="input"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-      </label>
-      {error && <p className="text-sm text-bad">{error}</p>}
+      <PasswordInput label="Mot de passe" value={password} onChange={(e) => setPassword(e.target.value)} required />
+      {error && (
+        <p role="alert" className="notice notice-bad">
+          {error}
+        </p>
+      )}
       <button type="submit" className="btn btn-primary w-full" disabled={loading}>
         {loading ? "Connexion…" : "Se connecter"}
       </button>

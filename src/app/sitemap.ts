@@ -7,7 +7,9 @@ export const revalidate = 3600;
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let modules: MetadataRoute.Sitemap = [];
   try {
-    modules = (await getPublicModules()).map((m) => ({
+    modules = (await getPublicModules())
+      .filter((m) => m.questionCount > 0) // empty modules are noindex
+      .map((m) => ({
       url: `${SITE_URL}/modules/${m.slug}`,
       changeFrequency: "weekly" as const,
       priority: 0.8,

@@ -2,13 +2,18 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { PasswordInput } from "@/components/PasswordInput";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 
 type Message = { kind: "ok" | "error"; text: string } | null;
 
 function MessageLine({ message }: { message: Message }) {
   if (!message) return null;
-  return <p className={`text-sm ${message.kind === "error" ? "text-bad" : "text-good"}`}>{message.text}</p>;
+  return (
+    <p role={message.kind === "error" ? "alert" : "status"} className={`notice ${message.kind === "error" ? "notice-bad" : "notice-good"}`}>
+      {message.text}
+    </p>
+  );
 }
 
 export function CredentialsForm({ email }: { email: string }) {
@@ -26,7 +31,7 @@ export function CredentialsForm({ email }: { email: string }) {
   return (
     <>
       <form
-        className="card space-y-4 p-5"
+        className="card space-y-5"
         onSubmit={async (e) => {
           e.preventDefault();
           const target = newEmail.trim();
@@ -52,8 +57,8 @@ export function CredentialsForm({ email }: { email: string }) {
         }}
       >
         <h2 className="font-semibold">Adresse email</h2>
-        <label className="block text-sm">
-          <span className="mb-1 block text-muted">Email</span>
+        <label className="field">
+          <span className="field-label">Email</span>
           <input
             className="input"
             type="email"
@@ -70,7 +75,7 @@ export function CredentialsForm({ email }: { email: string }) {
       </form>
 
       <form
-        className="card space-y-4 p-5"
+        className="card space-y-5"
         onSubmit={async (e) => {
           e.preventDefault();
           if (password.length < 8) return setPasswordMessage({ kind: "error", text: "8 caractères minimum." });
@@ -103,39 +108,9 @@ export function CredentialsForm({ email }: { email: string }) {
         }}
       >
         <h2 className="font-semibold">Mot de passe</h2>
-        <label className="block text-sm">
-          <span className="mb-1 block text-muted">Mot de passe actuel</span>
-          <input
-            className="input"
-            type="password"
-            value={current}
-            onChange={(e) => setCurrent(e.target.value)}
-            autoComplete="current-password"
-            required
-          />
-        </label>
-        <label className="block text-sm">
-          <span className="mb-1 block text-muted">Nouveau mot de passe (8 caractères minimum)</span>
-          <input
-            className="input"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="new-password"
-            required
-          />
-        </label>
-        <label className="block text-sm">
-          <span className="mb-1 block text-muted">Confirmer</span>
-          <input
-            className="input"
-            type="password"
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-            autoComplete="new-password"
-            required
-          />
-        </label>
+        <PasswordInput label="Mot de passe actuel" value={current} onChange={(e) => setCurrent(e.target.value)} autoComplete="current-password" required />
+        <PasswordInput label="Nouveau mot de passe" hint="8 caractères minimum." value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" required />
+        <PasswordInput label="Confirmer" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" required />
         <MessageLine message={passwordMessage} />
         <button type="submit" className="btn btn-ghost" disabled={passwordPending}>
           {passwordPending ? "Enregistrement…" : "Changer le mot de passe"}

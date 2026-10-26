@@ -26,7 +26,10 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     title: `QCM ${mod.name} — annales corrigées, Médecine Fès`,
     description: `${mod.questionCount} QCM d'examen de ${mod.name}${range} à la Faculté de Médecine de Fès, avec la correction et l'extrait du cours. Exemples gratuits.`,
     alternates: { canonical: `/modules/${mod.slug}` },
-    openGraph: { url: `/modules/${mod.slug}`, title: `QCM ${mod.name} — annales corrigées` },
+    // Setting openGraph replaces the inherited one, so the site image is listed again.
+    openGraph: { url: `/modules/${mod.slug}`, title: `QCM ${mod.name} — annales corrigées`, images: ["/opengraph-image"] },
+    // An empty module is a thin page: keep it out of the index until it has questions.
+    ...(mod.questionCount === 0 && { robots: { index: false, follow: true } }),
   };
 }
 

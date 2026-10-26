@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 export function AdminToggle() {
   const inAdmin = usePathname().startsWith("/admin");
   return (
-    <div className="flex rounded-md border border-line p-0.5 text-xs">
+    <div className="flex rounded-md border border-control p-0.5 text-sm">
       <Link
         href="/modules"
         className={`rounded px-2 py-1 ${inAdmin ? "text-muted hover:text-foreground" : "bg-accent text-on-accent"}`}
