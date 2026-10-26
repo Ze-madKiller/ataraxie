@@ -26,7 +26,7 @@ export default function LoginPage() {
           setError("Email ou mot de passe incorrect.");
           return;
         }
-        refreshViewer();
+        await refreshViewer();
         router.push("/admin");
         router.refresh();
       }}

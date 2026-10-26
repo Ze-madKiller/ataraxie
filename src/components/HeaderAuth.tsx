@@ -61,7 +61,7 @@ export function HeaderAuth() {
             <path d="M4 7h16M4 12h16M4 17h16" />
           </svg>
         </summary>
-        <div className="card absolute right-0 mt-2 flex w-56 flex-col gap-1 p-2">
+        <div className="card animate-drop absolute right-0 mt-2 flex w-56 flex-col gap-1 p-2">
           {viewer.admin && (
             <Link href="/admin" className="btn btn-quiet justify-start">
               Administration

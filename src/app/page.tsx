@@ -76,25 +76,32 @@ function PreviewCard() {
     missed: { icon: "!", text: "Oubliée", color: "text-warn" },
   };
   return (
-    <figure className="card space-y-4 text-[0.9375rem] sm:rotate-[0.6deg]" aria-label="Exemple de correction">
+    <figure className="card space-y-4 text-[0.9375rem] animate-slide-in sm:rotate-[0.6deg]" style={{ "--i": 3 } as React.CSSProperties} aria-label="Exemple de correction">
       <div className="flex justify-between text-xs font-medium text-muted">
         <span>Cardiologie · 2024</span>
         <span>Question 1 sur 40</span>
       </div>
       <p className="font-medium">Concernant l&apos;insuffisance cardiaque à fraction d&apos;éjection réduite :</p>
       <ul className="space-y-2">
-        {choices.map((c) => (
-          <li key={c.label} className={`flex items-start gap-3 rounded-xl border-[1.5px] p-3 ${styles[c.state]}`}>
+        {choices.map((c, i) => (
+          <li
+            key={c.label}
+            className={`demo-state flex items-start gap-3 rounded-xl border-[1.5px] p-3 ${styles[c.state]}`}
+            style={{ "--i": i } as React.CSSProperties}
+          >
             <span className="font-semibold">{c.label}</span>
             <span className="flex-1">{c.text}</span>
-            <span className={`text-xs font-semibold whitespace-nowrap ${tags[c.state].color}`}>
+            <span
+              className={`demo-tag inline-block text-xs font-semibold whitespace-nowrap ${tags[c.state].color}`}
+              style={{ "--i": i } as React.CSSProperties}
+            >
               <span aria-hidden>{tags[c.state].icon} </span>
               {tags[c.state].text}
             </span>
           </li>
         ))}
       </ul>
-      <div className="citation">
+      <div className="citation demo-cite">
         <blockquote>« L&apos;ICFEr est définie par une FEVG ≤ 40 %. Les IEC réduisent la mortalité. »</blockquote>
         <figcaption>Cours : Insuffisance cardiaque, p. 12</figcaption>
       </div>
@@ -121,17 +128,29 @@ export default async function Home() {
     <div className="space-y-20 sm:space-y-28">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(structuredData) }} />
 
-      <section className="grid items-center gap-10 pt-2 md:grid-cols-[1.15fr_1fr] md:gap-14">
+      <section className="relative isolate grid items-center gap-10 pt-2 md:grid-cols-[1.15fr_1fr] md:gap-14">
+        {/* Soft static glow behind the hero. Decorative. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-24 right-0 -z-10 h-80 w-80 rounded-full bg-accent/20 blur-3xl md:right-10 md:h-[28rem] md:w-[28rem]"
+        />
         <div className="space-y-6">
-          <p className="eyebrow">Faculté de Médecine de Fès · Annales corrigées</p>
-          <h1 className="display">Les QCM d&apos;examen de médecine, corrigés par le cours.</h1>
-          <p className="lead">
+          <p className="eyebrow animate-rise" style={{ "--i": 0 } as React.CSSProperties}>
+            Faculté de Médecine de Fès · Annales corrigées
+          </p>
+          {/* Movement only, no fade: the headline is the LCP element and must paint immediately. */}
+          <h1 className="display animate-rise-solid" style={{ "--i": 1 } as React.CSSProperties}>
+            Les QCM d&apos;examen de médecine, corrigés par le cours.
+          </h1>
+          <p className="lead animate-rise" style={{ "--i": 2 } as React.CSSProperties}>
             Révisez les examens passés de votre faculté, module par module. Après chaque question : la correction et
             l&apos;extrait exact du cours du professeur.
           </p>
-          <HomeCta secondary />
+          <div className="animate-rise" style={{ "--i": 3 } as React.CSSProperties}>
+            <HomeCta secondary />
+          </div>
           {stats && stats.questions > 0 && (
-            <dl className="flex flex-wrap gap-x-10 gap-y-4 border-t border-line pt-6">
+            <dl className="flex flex-wrap gap-x-10 gap-y-4 border-t border-line pt-6 animate-rise" style={{ "--i": 4 } as React.CSSProperties}>
               {[
                 { n: stats.questions, label: "QCM corrigés" },
                 { n: stats.exams, label: "examens" },
@@ -149,7 +168,7 @@ export default async function Home() {
       </section>
 
       <section className="space-y-8" aria-labelledby="features-title">
-        <div className="max-w-2xl space-y-3">
+        <div className="reveal max-w-2xl space-y-3">
           <p className="eyebrow">Ce que vous trouverez ici</p>
           <h2 id="features-title" className="title">
             Moins de temps à chercher la réponse, plus de temps à la comprendre.
@@ -157,7 +176,7 @@ export default async function Home() {
         </div>
         <ul className="grid gap-x-10 gap-y-8 sm:grid-cols-2">
           {features.map((f, i) => (
-            <li key={f.title} className="flex gap-4">
+            <li key={f.title} className="reveal flex gap-4" style={{ "--i": i } as React.CSSProperties}>
               <span className="font-serif text-2xl font-semibold text-accent" aria-hidden>
                 {String(i + 1).padStart(2, "0")}
               </span>
@@ -170,7 +189,7 @@ export default async function Home() {
         </ul>
       </section>
 
-      <section className="rounded-3xl bg-sand px-5 py-10 sm:px-10 sm:py-12" aria-labelledby="scoring-title">
+      <section className="reveal rounded-3xl bg-sand px-5 py-10 sm:px-10 sm:py-12" aria-labelledby="scoring-title">
         <div className="grid gap-8 md:grid-cols-[1fr_1.2fr] md:items-center">
           <div className="space-y-3">
             <p className="eyebrow">Comme le jour de l&apos;examen</p>
@@ -191,7 +210,9 @@ export default async function Home() {
         </h2>
         <ol className="grid gap-6 sm:grid-cols-3">
           {steps.map((s, i) => (
-            <li key={s.title} className="space-y-2 border-t-2 border-accent pt-4">
+            <li key={s.title} className="reveal space-y-2" style={{ "--i": i } as React.CSSProperties}>
+              {/* The accent rule grows from the left as the step scrolls in. */}
+              <span aria-hidden className="reveal-grow-x mb-4 block h-0.5 w-full rounded-full bg-accent" />
               <p className="text-sm font-semibold text-accent">Étape {i + 1}</p>
               <h3 className="heading">{s.title}</h3>
               <p className="text-muted">{s.text}</p>
@@ -211,8 +232,8 @@ export default async function Home() {
             </Link>
           </div>
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {featured.map((m) => (
-              <li key={m.id}>
+            {featured.map((m, i) => (
+              <li key={m.id} className="reveal" style={{ "--i": Math.min(i, 5) } as React.CSSProperties}>
                 <Link href={`/modules/${m.slug}`} className="card card-link block h-full">
                   <p className="text-xs font-medium text-muted">{m.semester ? semesterLabel(m.semester) : "Tous semestres"}</p>
                   <h3 className="heading mt-1">QCM de {m.name}</h3>
@@ -224,7 +245,7 @@ export default async function Home() {
         </section>
       )}
 
-      <section className="card flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:justify-between sm:p-10">
+      <section className="card reveal flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:justify-between sm:p-10">
         <div className="space-y-1">
           <h2 className="title">Prêt à réviser ?</h2>
           <p className="text-muted">Choisissez votre semestre et commencez par le module de votre choix.</p>

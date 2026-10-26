@@ -60,7 +60,7 @@ export function ModuleProgress({
     });
 
   return (
-    <section className="card space-y-4" aria-labelledby="progress-title">
+    <section className="card space-y-4 animate-rise" style={{ "--i": 1 } as React.CSSProperties} aria-labelledby="progress-title">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 id="progress-title" className="heading">
           Votre progression
@@ -73,6 +73,7 @@ export function ModuleProgress({
         value={answered}
         max={total}
         label="Questions faites"
+        animateIn
         segments={[
           { value: correct, className: "bg-good" },
           { value: wrong, className: "bg-bad" },

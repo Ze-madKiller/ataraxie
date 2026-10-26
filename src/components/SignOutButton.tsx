@@ -23,9 +23,14 @@ export function SignOutButton({
       disabled={pending}
       onClick={async () => {
         setPending(true);
-        // Loaded on click: keeps the Supabase client out of the header's first-load bundle.
-        const { createBrowserSupabase } = await import("@/lib/supabase/browser");
-        const { error } = await createBrowserSupabase().auth.signOut({ scope: "local" });
+        let error: unknown = null;
+        try {
+          // Loaded on click: keeps the Supabase client out of the header's first-load bundle.
+          const { createBrowserSupabase } = await import("@/lib/supabase/browser");
+          ({ error } = await createBrowserSupabase().auth.signOut({ scope: "local" }));
+        } catch (e) {
+          error = e; // offline or stale deploy: fall back to clearing the cookies below
+        }
         if (error) {
           // Session already invalid on the server: drop the auth cookies ourselves.
           document.cookie.split(";").forEach((c) => {

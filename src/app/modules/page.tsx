@@ -23,7 +23,7 @@ function ModuleCard({ m, done }: { m: PublicModule; done?: number }) {
       {m.description && <p className="mt-1 line-clamp-2 text-sm text-muted">{m.description}</p>}
       {done !== undefined && count > 0 ? (
         <div className="mt-4 space-y-1.5">
-          <ProgressBar value={done} max={count} label={`Progression en ${m.name}`} />
+          <ProgressBar value={done} max={count} label={`Progression en ${m.name}`} animateIn />
           <p className="text-sm text-muted">
             {done}/{count} question{count > 1 ? "s" : ""} faite{done > 1 ? "s" : ""}
           </p>
@@ -40,8 +40,8 @@ function ModuleCard({ m, done }: { m: PublicModule; done?: number }) {
 function ModuleGrid({ modules, progress }: { modules: PublicModule[]; progress?: Record<string, number> }) {
   return (
     <ul className="grid gap-3 sm:grid-cols-2">
-      {modules.map((m) => (
-        <li key={m.id}>
+      {modules.map((m, i) => (
+        <li key={m.id} className="animate-rise" style={{ "--i": Math.min(i, 5) } as React.CSSProperties}>
           <ModuleCard m={m} done={progress ? (progress[m.id] ?? 0) : undefined} />
         </li>
       ))}
@@ -68,7 +68,7 @@ export default async function ModulesPage({ searchParams }: { searchParams: Sear
   if (!user) {
     return (
       <div className="space-y-8">
-        <header className="space-y-3">
+        <header className="space-y-3 animate-rise">
           <p className="eyebrow">Faculté de Médecine de Fès</p>
           <h1 className="display">Modules et annales de QCM</h1>
           <p className="lead">

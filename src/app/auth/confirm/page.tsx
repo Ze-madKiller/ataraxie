@@ -28,7 +28,7 @@ export default function ConfirmPage() {
         data: { user },
       } = await supabase.auth.getUser();
       if (user) {
-        refreshViewer();
+        await refreshViewer();
         router.replace("/modules");
         router.refresh();
       } else {

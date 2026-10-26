@@ -60,7 +60,7 @@ export function SignUpForm() {
         if (error) return setError(frenchAuthError(error.message));
         if (data.session) {
           // Back to the public module page the visitor came from, if any.
-          refreshViewer();
+          await refreshViewer();
           router.push(safeNext(new URLSearchParams(window.location.search).get("next")));
           router.refresh();
         } else if (data.user?.identities?.length === 0) {

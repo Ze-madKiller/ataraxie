@@ -5,12 +5,15 @@ export function ProgressBar({
   label,
   segments,
   className = "",
+  animateIn = false,
 }: {
   value: number;
   max: number;
   label: string;
   segments?: { value: number; className: string }[];
   className?: string;
+  /** Fill from the left when the bar first appears (clip-path, so the inline widths stay untouched). */
+  animateIn?: boolean;
 }) {
   const pct = (n: number) => (max > 0 ? Math.min(100, (n / max) * 100) : 0);
   const parts = segments ?? [{ value, className: "bg-accent" }];
@@ -23,9 +26,15 @@ export function ProgressBar({
       aria-valuenow={value}
       className={`flex h-2 w-full overflow-hidden rounded-full bg-track ${className}`}
     >
-      {parts.map((s, i) => (
-        <div key={i} className={`h-full transition-[width] duration-300 motion-reduce:transition-none ${s.className}`} style={{ width: `${pct(s.value)}%` }} />
-      ))}
+      <div className={`flex h-full w-full ${animateIn ? "animate-fill" : ""}`}>
+        {parts.map((s, i) => (
+          <div
+            key={i}
+            className={`h-full transition-[width] duration-300 ease-[var(--ease-out)] motion-reduce:transition-none ${s.className}`}
+            style={{ width: `${pct(s.value)}%` }}
+          />
+        ))}
+      </div>
     </div>
   );
 }

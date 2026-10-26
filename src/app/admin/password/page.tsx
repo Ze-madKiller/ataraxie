@@ -66,7 +66,7 @@ export default function SetPasswordPage() {
         const { error } = await createBrowserSupabase().auth.updateUser({ password });
         setSaving(false);
         if (error) return setError(error.message);
-        refreshViewer();
+        await refreshViewer();
         router.push("/modules");
         router.refresh();
       }}

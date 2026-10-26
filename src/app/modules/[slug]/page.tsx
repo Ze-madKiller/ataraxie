@@ -66,7 +66,7 @@ async function PublicModule({ slug }: { slug: string }) {
         <span aria-current="page">{mod.name}</span>
       </nav>
 
-      <header className="space-y-4">
+      <header className="space-y-4 animate-rise">
         <p className="eyebrow">{mod.semester ? semesterLabel(mod.semester) : "Tous semestres"} · Médecine Fès</p>
         <h1 className="display">QCM de {mod.name} : annales corrigées</h1>
         <p className="lead">
@@ -94,8 +94,12 @@ async function PublicModule({ slug }: { slug: string }) {
             Examens disponibles
           </h2>
           <ul className="flex flex-wrap gap-2">
-            {exams.map((e) => (
-              <li key={`${e.year}|${e.session}`} className="chip">
+            {exams.map((e, i) => (
+              <li
+                key={`${e.year}|${e.session}`}
+                className="chip animate-pop"
+                style={{ "--i": Math.min(i, 8) } as React.CSSProperties}
+              >
                 {examLabel(e)} · {e.count} QCM
               </li>
             ))}
@@ -109,12 +113,14 @@ async function PublicModule({ slug }: { slug: string }) {
             Exemples de questions corrigées
           </h2>
           {samples.map((q, i) => (
-            <SampleQuestion key={q.id} question={q} index={i} />
+            <div key={q.id} className="reveal-slide">
+              <SampleQuestion question={q} index={i} />
+            </div>
           ))}
         </section>
       )}
 
-      <section className="card flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <section className="card reveal flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="heading">Continuer avec les {mod.questionCount} questions</h2>
           <p className="text-muted">Compte gratuit : progression enregistrée, erreurs à refaire, mode examen.</p>
@@ -146,7 +152,7 @@ async function StudentModule({ slug }: { slug: string }) {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="animate-rise">
         <Link href="/modules" className="link-quiet inline-flex min-h-11 items-center text-sm">
           ← Modules
         </Link>
@@ -166,7 +172,12 @@ async function StudentModule({ slug }: { slug: string }) {
             wrong={answered.length - correct}
           />
 
-          <form action={`/modules/${mod.slug}/quiz`} method="get" className="card space-y-5">
+          <form
+            action={`/modules/${mod.slug}/quiz`}
+            method="get"
+            className="card space-y-5 animate-rise"
+            style={{ "--i": 2 } as React.CSSProperties}
+          >
             <h2 className="heading">Nouvelle série</h2>
             <label className="field">
               <span className="field-label">Examen</span>

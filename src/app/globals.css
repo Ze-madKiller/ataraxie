@@ -27,6 +27,17 @@
   --warn: #8a4b0f;
   --warn-soft: #fbf0dd;
   --shadow: 0 1px 2px rgb(27 36 33 / 0.04), 0 4px 16px -8px rgb(27 36 33 / 0.08);
+  --shadow-lift: 0 2px 4px rgb(27 36 33 / 0.05), 0 18px 36px -16px rgb(31 95 87 / 0.28);
+
+  /* Motion tokens. Every animation below is opt-in: only under prefers-reduced-motion: no-preference. */
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 420ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --rise: 16px;
+  --slide: 28px;
+  --stagger: 70ms;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -52,6 +63,7 @@
     --warn: #f0b45a;
     --warn-soft: #2e2414;
     --shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+    --shadow-lift: 0 2px 4px rgb(0 0 0 / 0.35), 0 18px 36px -16px rgb(95 196 180 / 0.25);
   }
 }
 
@@ -81,6 +93,8 @@
 }
 
 body {
+  /* Slide-ins start off to the side: never let them create a horizontal scrollbar. */
+  overflow-x: clip;
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
@@ -177,10 +191,21 @@ html {
   font-weight: 500;
   line-height: 1.25;
   text-align: center;
-  transition: background-color 150ms, border-color 150ms, color 150ms;
+  transition:
+    background-color 150ms,
+    border-color 150ms,
+    color 150ms,
+    transform var(--dur-base) var(--ease-pop);
   &:disabled {
     cursor: not-allowed;
     opacity: 0.55;
+  }
+  /* Playful squish on press. */
+  @media (prefers-reduced-motion: no-preference) {
+    &:active:not(:disabled) {
+      transform: scale(0.97);
+      transition-duration: var(--dur-fast);
+    }
   }
 }
 
@@ -220,7 +245,7 @@ html {
 
 @utility card {
   border: 1px solid var(--line);
-  border-radius: 1rem;
+  border-radius: 1.25rem;
   background: var(--surface);
   box-shadow: var(--shadow);
   padding: 1.25rem;
@@ -230,13 +255,21 @@ html {
 }
 
 @utility card-link {
-  transition: border-color 150ms, transform 150ms;
+  transition:
+    border-color var(--dur-base),
+    box-shadow var(--dur-base),
+    transform var(--dur-slow) var(--ease-pop);
   &:hover {
     border-color: var(--accent);
+    box-shadow: var(--shadow-lift);
   }
   @media (prefers-reduced-motion: no-preference) {
     &:hover {
-      transform: translateY(-1px);
+      transform: translateY(-3px);
+    }
+    &:active {
+      transform: translateY(-1px) scale(0.99);
+      transition-duration: var(--dur-fast);
     }
   }
 }
@@ -373,4 +406,245 @@ html {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
   }
+}
+
+/*
+ * Motion system. Base styles always hold the final state; keyframes only describe where an
+ * element comes from. So content is visible without JS, to crawlers, and with reduced motion.
+ * Stagger: set style={{ "--i": index }} (capped at 6) on the animated element.
+ */
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(var(--rise));
+  }
+}
+
+/* Movement only, no fade: used on the LCP headline so it is painted immediately. */
+@keyframes rise-solid {
+  from {
+    transform: translateY(var(--rise));
+  }
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(var(--slide));
+  }
+}
+
+@keyframes drop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(0.85);
+  }
+  60% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes grow-x {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes fill-in {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+}
+
+@keyframes draw {
+  from {
+    stroke-dashoffset: 24;
+  }
+}
+
+@keyframes pulse-ring {
+  from {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--good) 45%, transparent);
+  }
+  to {
+    box-shadow: 0 0 0 10px color-mix(in srgb, var(--good) 0%, transparent);
+  }
+}
+
+/* Hero preview card: choices start neutral, then show their corrected state one by one. */
+@keyframes from-neutral {
+  from {
+    border-color: var(--line);
+    background-color: var(--surface);
+  }
+}
+
+@keyframes tag-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  70% {
+    transform: scale(1.1);
+  }
+}
+
+/* On page load. */
+@utility animate-rise {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: rise var(--dur-slow) var(--ease-out) both;
+    animation-delay: calc(var(--i, 0) * var(--stagger));
+  }
+}
+
+@utility animate-rise-solid {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: rise-solid var(--dur-slow) var(--ease-out) both;
+    animation-delay: calc(var(--i, 0) * var(--stagger));
+  }
+}
+
+@utility animate-slide-in {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: slide-in 560ms var(--ease-out) both;
+    animation-delay: calc(var(--i, 0) * var(--stagger));
+  }
+}
+
+@utility animate-drop {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: drop 160ms var(--ease-out) both;
+  }
+}
+
+@utility animate-pop {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: pop 280ms var(--ease-pop) both;
+    animation-delay: calc(var(--i, 0) * 40ms);
+  }
+}
+
+@utility animate-grow-x {
+  transform-origin: left;
+  @media (prefers-reduced-motion: no-preference) {
+    animation: grow-x 700ms var(--ease-out) both;
+    animation-delay: calc(var(--i, 0) * var(--stagger) + 150ms);
+  }
+}
+
+@utility animate-fill {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: fill-in 900ms var(--ease-out) both;
+    animation-delay: 150ms;
+  }
+}
+
+@utility animate-pulse-good {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: pulse-ring 600ms var(--ease-out) 1;
+  }
+}
+
+/* Check mark that draws itself: put on an SVG <path> with pathLength="24". */
+@utility animate-draw {
+  stroke-dasharray: 24;
+  @media (prefers-reduced-motion: no-preference) {
+    animation: draw 360ms var(--ease-out) both;
+    animation-delay: 120ms;
+  }
+}
+
+/*
+ * On scroll: plays while the element enters the viewport. Browsers without scroll timelines
+ * (Firefox today) just show the content. Elements already on screen at load are past the range.
+ */
+@utility reveal {
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: view()) {
+      animation: rise linear both;
+      animation-timeline: view();
+      animation-range: entry calc(var(--i, 0) * 4%) entry calc(45% + var(--i, 0) * 4%);
+    }
+  }
+}
+
+@utility reveal-slide {
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: view()) {
+      animation: slide-in linear both;
+      animation-timeline: view();
+      animation-range: entry calc(var(--i, 0) * 4%) entry calc(45% + var(--i, 0) * 4%);
+    }
+  }
+}
+
+@utility reveal-grow-x {
+  transform-origin: left;
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: view()) {
+      animation: grow-x linear both;
+      animation-timeline: view();
+      animation-range: entry 10% entry 70%;
+    }
+  }
+}
+
+/* One-shot correction demo in the home preview card (under 5 s, never loops). */
+@utility demo-state {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: from-neutral 450ms var(--ease-out) both;
+    animation-delay: calc(1100ms + var(--i, 0) * 450ms);
+  }
+}
+
+@utility demo-tag {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: tag-in 360ms var(--ease-pop) both;
+    animation-delay: calc(1250ms + var(--i, 0) * 450ms);
+  }
+}
+
+@utility demo-cite {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: rise 500ms var(--ease-out) both;
+    animation-delay: 2600ms;
+  }
+}
+
+/* Page transition (src/app/template.tsx). No full fade, so the page's main content paints at once.
+   fill-mode backwards: once done, no transform is left on the wrapper, so position: fixed children
+   (the quiz action bar) are positioned against the viewport again. */
+@keyframes page-in {
+  from {
+    opacity: 0.4;
+    transform: translateY(10px);
+  }
+}
+
+@utility animate-page {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: page-in 260ms var(--ease-out) backwards;
+  }
+}
+
+@keyframes page-fade {
+  from {
+    opacity: 0.4;
+  }
+}
+
+/* Quiz pages fade only: a transform would detach the fixed action bar from the viewport. Keyed on a
+   marker present on every quiz screen, so finishing the quiz does not restart the animation. */
+.animate-page:has([data-quiz]) {
+  animation-name: page-fade;
 }

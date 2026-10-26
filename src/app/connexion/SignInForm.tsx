@@ -44,7 +44,7 @@ export function SignInForm() {
           return;
         }
         // Read here rather than with useSearchParams so the page needs no Suspense boundary.
-        refreshViewer();
+        await refreshViewer();
         router.push(safeNext(new URLSearchParams(window.location.search).get("next")));
         router.refresh();
       }}

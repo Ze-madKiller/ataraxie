@@ -34,12 +34,15 @@ function ChoiceList({
   revealed,
   onToggle,
   labelledBy,
+  celebrate = false,
 }: {
   question: QuestionWithChoices;
   selected: ReadonlySet<string>;
   revealed: boolean;
   onToggle?: (id: string) => void;
   labelledBy?: string;
+  /** Pulse the correct choices once (live answer that earned the point). */
+  celebrate?: boolean;
 }) {
   const hintId = useId();
   const interactive = Boolean(onToggle) && !revealed;
@@ -57,7 +60,7 @@ function ChoiceList({
         return (
           <label
             key={c.id}
-            className={`choice ${revealed ? `${choiceStyles[state]} cursor-default` : picked ? "border-accent bg-accent-soft" : ""}`}
+            className={`choice ${revealed ? `${choiceStyles[state]} cursor-default` : picked ? "border-accent bg-accent-soft" : ""} ${celebrate && state === "correct" ? "animate-pulse-good" : ""}`}
           >
             <input
               type="checkbox"
@@ -169,20 +172,40 @@ function Correction({
   question,
   correct,
   headingRef,
+  celebrate = false,
 }: {
   question: QuestionWithChoices;
   correct: boolean;
   headingRef?: React.Ref<HTMLHeadingElement>;
+  /** Live answer (not the end-screen review): a small pop and a drawn check mark when correct. */
+  celebrate?: boolean;
 }) {
+  const party = celebrate && correct;
   const correctLabels = question.choices.filter((c) => c.is_correct).map((c) => c.label);
   return (
     <section className="space-y-4 border-t border-line pt-5" aria-label="Correction">
       <h3
         ref={headingRef}
         tabIndex={-1}
-        className={`flex items-center gap-2 text-lg font-semibold outline-none ${correct ? "text-good" : "text-bad"}`}
+        className={`flex items-center gap-2 text-lg font-semibold outline-none ${correct ? "text-good" : "text-bad"} ${party ? "animate-pop origin-left" : ""}`}
       >
-        <span aria-hidden>{correct ? "✓" : "✗"}</span>
+        {party ? (
+          <svg aria-hidden width="22" height="22" viewBox="0 0 24 24" className="shrink-0">
+            <circle cx="12" cy="12" r="11" className="fill-good-soft" />
+            <path
+              d="M6.5 12.5l3.5 3.5 7.5-8"
+              pathLength={24}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="animate-draw"
+            />
+          </svg>
+        ) : (
+          <span aria-hidden>{correct ? "✓" : "✗"}</span>
+        )}
         {correct ? "Correct — 1 point" : "Incorrect — 0 point"}
       </h3>
       <p>
@@ -260,7 +283,7 @@ export function Quiz({
     const wrong = results.filter((r) => !r.correct);
     const reviewed = mode === "exam" ? results : wrong;
     return (
-      <div className="space-y-6">
+      <div data-quiz className="space-y-6">
         <section className="card text-center sm:p-10" aria-labelledby="score-title">
           <p className="eyebrow">Série terminée</p>
           <h2 id="score-title" ref={scoreHeading} tabIndex={-1} className="mt-2 outline-none">
@@ -364,7 +387,7 @@ export function Quiz({
   };
 
   return (
-    <div className="space-y-4 pb-24 sm:pb-0">
+    <div data-quiz className="space-y-4 pb-24 sm:pb-0">
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-3 text-sm text-muted">
           <span>
@@ -386,8 +409,15 @@ export function Quiz({
           <span className="sr-only">Question {index + 1}. </span>
           {q.statement}
         </h2>
-        <ChoiceList question={q} selected={selected} revealed={revealed} onToggle={toggle} labelledBy={statementId} />
-        {revealed && <Correction question={q} correct={answeredCorrectly} headingRef={correctionHeading} />}
+        <ChoiceList
+          question={q}
+          selected={selected}
+          revealed={revealed}
+          onToggle={toggle}
+          labelledBy={statementId}
+          celebrate={answeredCorrectly}
+        />
+        {revealed && <Correction question={q} correct={answeredCorrectly} headingRef={correctionHeading} celebrate />}
       </article>
 
       {/* Primary action under the thumb on phones, inline on larger screens. */}
