@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { signOut } from "@/app/admin/actions";
+import { SignOutButton } from "@/components/SignOutButton";
 import { requireAdmin } from "@/lib/auth";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -17,12 +17,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <Link href="/admin/reports" className="text-muted hover:text-foreground">
           Signalements
         </Link>
+        <Link href="/admin/stats" className="text-muted hover:text-foreground">
+          Statistiques
+        </Link>
         <span className="ml-auto text-muted">{user.email}</span>
-        <form action={signOut}>
-          <button type="submit" className="text-muted underline hover:text-foreground">
-            Déconnexion
-          </button>
-        </form>
+        <SignOutButton label="Déconnexion" redirectTo="/admin/login" className="text-muted underline hover:text-foreground" />
       </nav>
       {children}
     </div>

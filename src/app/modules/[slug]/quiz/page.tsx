@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Quiz } from "@/components/Quiz";
-import { createPublicClient } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/auth";
+import { loadModuleProgress } from "@/lib/progress-server";
+import { createSessionClient } from "@/lib/supabase/server";
 import type { Module, QuestionWithChoices } from "@/lib/types";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -20,7 +22,8 @@ export default async function QuizPage({ params, searchParams }: { params: Promi
   const sp = await searchParams;
   const param = (name: string) => (typeof sp[name] === "string" ? (sp[name] as string) : "");
 
-  const db = createPublicClient();
+  await requireUser(`/modules/${slug}`);
+  const db = await createSessionClient();
   const { data: moduleData } = await db.from("modules").select("*").eq("slug", slug).maybeSingle();
   if (!moduleData) notFound();
   const mod = moduleData as Module;
@@ -44,6 +47,11 @@ export default async function QuizPage({ params, searchParams }: { params: Promi
       (q) => String(q.exam_year ?? "") === year && (q.exam_session ?? "") === (session ?? ""),
     );
   }
+  const onlyWrong = param("only") === "wrong";
+  if (onlyWrong) {
+    const progress = await loadModuleProgress(mod.id);
+    questions = questions.filter((q) => progress[q.id] && !progress[q.id].correct);
+  }
   for (const q of questions) q.choices.sort((a, b) => a.position - b.position);
   // Shuffled on the server so the client renders the same order it was sent (no hydration mismatch).
   if (param("shuffle") === "1") questions = shuffle(questions);
@@ -54,14 +62,14 @@ export default async function QuizPage({ params, searchParams }: { params: Promi
         ← {mod.name}
       </Link>
       {questions.length === 0 ? (
-        <p className="card p-6 text-muted">Aucune question pour cette sélection.</p>
+        <p className="card p-6 text-muted">
+          {onlyWrong ? "Aucune erreur à revoir. Bravo !" : "Aucune question pour cette sélection."}
+        </p>
       ) : (
         <Quiz
-          moduleId={mod.id}
           moduleSlug={mod.slug}
           questions={questions}
           mode={param("mode") === "exam" ? "exam" : "practice"}
-          onlyWrong={param("only") === "wrong"}
         />
       )}
     </div>

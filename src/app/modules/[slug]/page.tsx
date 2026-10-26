@@ -1,14 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ModuleProgress } from "@/components/ModuleProgress";
-import { createPublicClient } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/auth";
+import { loadModuleProgress } from "@/lib/progress-server";
+import { createSessionClient } from "@/lib/supabase/server";
 import type { Module } from "@/lib/types";
-
-export const revalidate = 60;
 
 export default async function ModulePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const db = createPublicClient();
+  await requireUser(`/modules/${slug}`);
+  const db = await createSessionClient();
   const { data: moduleData } = await db.from("modules").select("*").eq("slug", slug).maybeSingle();
   if (!moduleData) notFound();
   const mod = moduleData as Module;
@@ -16,6 +17,9 @@ export default async function ModulePage({ params }: { params: Promise<{ slug: s
   const { data: rows, error } = await db.from("questions").select("id, exam_year, exam_session").eq("module_id", mod.id);
   if (error) throw new Error(error.message);
   const questions = rows ?? [];
+  const progress = await loadModuleProgress(mod.id);
+  const answered = questions.filter((q) => progress[q.id]);
+  const correct = answered.filter((q) => progress[q.id].correct).length;
 
   // Group by exam (year + session) so students can practise one paper at a time.
   const exams = new Map<string, { year: number | null; session: string | null; count: number }>();
@@ -30,7 +34,7 @@ export default async function ModulePage({ params }: { params: Promise<{ slug: s
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/" className="text-sm text-muted hover:text-foreground">
+        <Link href="/modules" className="text-sm text-muted hover:text-foreground">
           ← Modules
         </Link>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">{mod.name}</h1>
@@ -41,7 +45,13 @@ export default async function ModulePage({ params }: { params: Promise<{ slug: s
         <p className="card p-6 text-muted">Les questions de ce module arrivent bientôt.</p>
       ) : (
         <>
-          <ModuleProgress moduleId={mod.id} slug={mod.slug} questionIds={questions.map((q) => q.id)} />
+          <ModuleProgress
+            moduleId={mod.id}
+            slug={mod.slug}
+            total={questions.length}
+            correct={correct}
+            wrong={answered.length - correct}
+          />
 
           <form action={`/modules/${mod.slug}/quiz`} method="get" className="card space-y-4 p-5">
             <h2 className="font-semibold">Nouvelle série</h2>

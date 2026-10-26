@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
-import Link from "next/link";
 import { AuthHashRedirect } from "@/components/AuthHashRedirect";
+import { SiteHeader } from "@/components/SiteHeader";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -10,7 +10,7 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "Ataraxie — Révision des QCM",
+  title: "E-ATARAXIE — Révision des QCM",
   description: "Révisez les QCM des examens passés, module par module, avec la correction tirée des cours.",
 };
 
@@ -24,14 +24,7 @@ export default function RootLayout({
     <html lang="fr" suppressHydrationWarning>
       <body className={`${geistSans.variable} antialiased`}>
         <AuthHashRedirect />
-        <header className="border-b border-line bg-surface">
-          <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3">
-            <Link href="/" className="text-lg font-semibold tracking-tight text-accent">
-              Ataraxie
-            </Link>
-            <span className="text-sm text-muted">QCM des examens passés</span>
-          </div>
-        </header>
+        <SiteHeader />
         <main className="mx-auto max-w-4xl px-4 py-6">{children}</main>
       </body>
     </html>

@@ -18,6 +18,8 @@ export default function SetPasswordPage() {
   useEffect(() => {
     const supabase = createBrowserSupabase();
     (async () => {
+      // getSession waits for the client to exchange a ?code= reset link (PKCE) on its own.
+      await supabase.auth.getSession();
       const params = new URLSearchParams(window.location.hash.slice(1));
       const accessToken = params.get("access_token");
       const refreshToken = params.get("refresh_token");
@@ -43,7 +45,7 @@ export default function SetPasswordPage() {
     return (
       <div className="card mx-auto max-w-sm space-y-3 p-6">
         <p>Ce lien a expiré ou a déjà été utilisé.</p>
-        <Link href="/admin/login" className="btn btn-primary">
+        <Link href="/connexion" className="btn btn-primary">
           Aller à la connexion
         </Link>
       </div>
@@ -62,7 +64,7 @@ export default function SetPasswordPage() {
         const { error } = await createBrowserSupabase().auth.updateUser({ password });
         setSaving(false);
         if (error) return setError(error.message);
-        router.push("/admin");
+        router.push("/modules");
         router.refresh();
       }}
     >

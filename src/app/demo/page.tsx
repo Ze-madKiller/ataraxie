@@ -12,7 +12,7 @@ export default function DemoPage() {
         Aperçu avec des questions d&apos;exemple. <Link href="/demo/review" className="underline">Voir l&apos;écran de vérification admin →</Link>
       </p>
       <h1 className="text-2xl font-semibold tracking-tight">Cardiologie (démo)</h1>
-      <Quiz moduleId="demo" moduleSlug="demo" questions={demoQuestions} mode="practice" onlyWrong={false} />
+      <Quiz moduleSlug="demo" questions={demoQuestions} mode="practice" />
     </div>
   );
 }

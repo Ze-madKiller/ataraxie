@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createModule } from "@/app/admin/actions";
 import { requireAdmin } from "@/lib/auth";
+import { SEMESTERS, semesterLabel } from "@/lib/semesters";
 import { createServiceClient } from "@/lib/supabase/server";
 import type { Module } from "@/lib/types";
 
@@ -8,7 +9,7 @@ export default async function AdminHome() {
   await requireAdmin();
   const db = createServiceClient();
   const [{ data: modules, error }, { data: questions, error: qError }] = await Promise.all([
-    db.from("modules").select("*").order("position"),
+    db.from("modules").select("*").order("semester", { nullsFirst: false }).order("position"),
     db.from("questions").select("module_id, status"),
   ]);
   if (error) throw new Error(error.message);
@@ -36,7 +37,7 @@ export default async function AdminHome() {
                   {m.name}
                 </Link>
                 <p className="text-sm text-muted">
-                  {c.approved} publiées · {c.draft} à vérifier
+                  {m.semester ? `S${m.semester}` : "Tous semestres"} · {c.approved} publiées · {c.draft} à vérifier
                 </p>
               </div>
               <div className="flex gap-2">
@@ -58,6 +59,14 @@ export default async function AdminHome() {
         <h2 className="font-semibold">Nouveau module</h2>
         <input name="name" className="input" placeholder="Nom, ex. Cardiologie" required />
         <input name="description" className="input" placeholder="Description (optionnelle)" />
+        <select name="semester" className="input" defaultValue="">
+          <option value="">Tous les semestres</option>
+          {SEMESTERS.map((s) => (
+            <option key={s} value={s}>
+              {semesterLabel(s)}
+            </option>
+          ))}
+        </select>
         <button type="submit" className="btn btn-primary">
           Créer le module
         </button>

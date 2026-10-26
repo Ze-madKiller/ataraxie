@@ -1,33 +1,40 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
+import { parseSemester } from "@/lib/semesters";
 import { slugify } from "@/lib/slug";
-import { createServiceClient, createSessionClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import type { DocumentKind, QuestionStatus } from "@/lib/types";
 
 type Result = { error?: string };
-
-export async function signOut() {
-  const session = await createSessionClient();
-  await session.auth.signOut();
-  redirect("/admin/login");
-}
 
 export async function createModule(formData: FormData): Promise<void> {
   await requireAdmin();
   const name = String(formData.get("name") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim() || null;
+  const semester = parseSemester(formData.get("semester"));
   if (!name) return;
   const db = createServiceClient();
   const { count } = await db.from("modules").select("id", { count: "exact", head: true });
   const { error } = await db
     .from("modules")
-    .insert({ name, description, slug: slugify(name) || crypto.randomUUID(), position: count ?? 0 });
+    .insert({ name, description, semester, slug: slugify(name) || crypto.randomUUID(), position: count ?? 0 });
   if (error) throw new Error(error.code === "23505" ? `A module named "${name}" already exists.` : error.message);
   revalidatePath("/admin");
   revalidatePath("/");
+}
+
+export async function updateModuleSemester(formData: FormData): Promise<void> {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const { error } = await createServiceClient()
+    .from("modules")
+    .update({ semester: parseSemester(formData.get("semester")) })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath(`/admin/modules/${id}`);
+  revalidatePath("/admin");
 }
 
 export async function createUploadUrl(moduleId: string, filename: string): Promise<{ path: string; token: string }> {

@@ -1,4 +1,4 @@
-# Ataraxie
+# E-ATARAXIE
 
 Revision site for medical students: past-exam QCMs by module, corrected right after each answer with the professor's lesson.
 An admin dashboard imports exam PDFs with Claude, which drafts the questions, answers and lesson excerpts for human review.

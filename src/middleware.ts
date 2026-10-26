@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-// Refreshes the Supabase auth cookie on admin routes so server components see a valid session.
+// Refreshes the Supabase auth cookie so server components see a valid session.
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
 
@@ -27,5 +27,6 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/admin/:path*"],
+  // Every page except static files and images.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
 };

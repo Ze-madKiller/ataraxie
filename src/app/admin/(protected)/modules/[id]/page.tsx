@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { updateModuleSemester } from "@/app/admin/actions";
 import { requireAdmin } from "@/lib/auth";
+import { SEMESTERS, semesterLabel } from "@/lib/semesters";
 import { createServiceClient } from "@/lib/supabase/server";
 import type { DocumentKind, DocumentRow, ImportJob, Module } from "@/lib/types";
 import { DeleteDocumentButton } from "./DeleteDocumentButton";
@@ -51,6 +53,20 @@ export default async function AdminModulePage({ params }: { params: Promise<{ id
             ← Modules
           </Link>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">{mod.name}</h1>
+          <form action={updateModuleSemester} className="mt-2 flex items-center gap-2 text-sm">
+            <input type="hidden" name="id" value={mod.id} />
+            <select name="semester" defaultValue={mod.semester ?? ""} className="input w-auto">
+              <option value="">Tous les semestres</option>
+              {SEMESTERS.map((s) => (
+                <option key={s} value={s}>
+                  {semesterLabel(s)}
+                </option>
+              ))}
+            </select>
+            <button type="submit" className="btn btn-ghost">
+              Enregistrer
+            </button>
+          </form>
         </div>
         <Link href={`/admin/review?module=${mod.id}`} className="btn btn-primary">
           Vérifier les questions

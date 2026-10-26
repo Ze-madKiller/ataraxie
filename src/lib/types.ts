@@ -9,6 +9,13 @@ export interface Module {
   slug: string;
   description: string | null;
   position: number;
+  semester: number | null;
+}
+
+export interface Profile {
+  id: string;
+  full_name: string | null;
+  semester: number | null;
 }
 
 export interface DocumentRow {

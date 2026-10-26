@@ -1,27 +1,53 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { loadProgress, resetProgress, type Progress } from "@/lib/progress";
+import { useRouter } from "next/navigation";
+import { useEffect, useState, useTransition } from "react";
+import { importLegacyProgress, resetModuleProgress } from "@/app/actions";
+import { clearLegacyProgress, loadLegacyProgress } from "@/lib/progress";
 
-export function ModuleProgress({ moduleId, slug, questionIds }: { moduleId: string; slug: string; questionIds: string[] }) {
-  // Read after mount: localStorage does not exist during server rendering.
-  const [progress, setProgress] = useState<Progress | null>(null);
-  useEffect(() => setProgress(loadProgress(moduleId)), [moduleId]);
+export function ModuleProgress({
+  moduleId,
+  slug,
+  total,
+  correct,
+  wrong,
+}: {
+  moduleId: string;
+  slug: string;
+  total: number;
+  correct: number;
+  wrong: number;
+}) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
 
-  if (!progress) return null;
-  const answered = questionIds.filter((id) => progress[id]);
-  if (answered.length === 0) return null;
-  const correct = answered.filter((id) => progress[id].correct).length;
-  const wrong = answered.length - correct;
+  // Progress saved in this browser by older versions: copy it to the account once, then forget it.
+  useEffect(() => {
+    const legacy = loadLegacyProgress(moduleId);
+    const entries = Object.entries(legacy).map(([questionId, p]) => ({ questionId, correct: p.correct, at: p.at }));
+    if (entries.length === 0) return;
+    importLegacyProgress(moduleId, entries)
+      .then((res) => {
+        if (res.error) return;
+        clearLegacyProgress(moduleId);
+        router.refresh();
+      })
+      .catch(() => {});
+  }, [moduleId, router]);
+
+  const answered = correct + wrong;
+  if (answered === 0) return null;
 
   return (
     <div className="card flex flex-wrap items-center justify-between gap-3 p-5">
       <div className="text-sm">
         <p className="font-semibold">Votre progression</p>
         <p className="text-muted">
-          {answered.length}/{questionIds.length} questions faites · {correct} réussies · {wrong} à revoir
+          {answered}/{total} questions faites · {correct} réussies · {wrong} à revoir
         </p>
+        {error && <p className="text-bad">{error}</p>}
       </div>
       <div className="flex gap-2">
         {wrong > 0 && (
@@ -32,12 +58,16 @@ export function ModuleProgress({ moduleId, slug, questionIds }: { moduleId: stri
         <button
           type="button"
           className="btn btn-ghost"
-          onClick={() => {
-            resetProgress(moduleId);
-            setProgress({});
-          }}
+          disabled={pending}
+          onClick={() =>
+            startTransition(async () => {
+              const res = await resetModuleProgress(moduleId);
+              if (res.error) setError(res.error);
+              else router.refresh();
+            })
+          }
         >
-          Réinitialiser
+          {pending ? "Réinitialisation…" : "Réinitialiser"}
         </button>
       </div>
     </div>

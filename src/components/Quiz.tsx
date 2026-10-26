@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { reportQuestion } from "@/app/actions";
-import { loadProgress, recordAnswer } from "@/lib/progress";
+import { useMemo, useState } from "react";
+import { recordAttempt, reportQuestion } from "@/app/actions";
 import { choiceState, isAnswerCorrect, scoreSummary, type ChoiceState } from "@/lib/scoring";
 import type { QuestionWithChoices } from "@/lib/types";
 
@@ -147,50 +146,26 @@ function Correction({ question, correct }: { question: QuestionWithChoices; corr
 }
 
 export function Quiz({
-  moduleId,
   moduleSlug,
   questions,
   mode,
-  onlyWrong,
 }: {
-  moduleId: string;
   moduleSlug: string;
   questions: QuestionWithChoices[];
   mode: Mode;
-  onlyWrong: boolean;
 }) {
-  // With onlyWrong the list depends on localStorage, so it is resolved after mount.
-  const [list, setList] = useState<QuestionWithChoices[] | null>(onlyWrong ? null : questions);
+  const [list, setList] = useState<QuestionWithChoices[]>(questions);
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [revealed, setRevealed] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string[]>>({});
   const [finished, setFinished] = useState(false);
 
-  useEffect(() => {
-    if (!onlyWrong) return;
-    const progress = loadProgress(moduleId);
-    setList(questions.filter((q) => progress[q.id] && !progress[q.id].correct));
-  }, [onlyWrong, moduleId, questions]);
-
   const results = useMemo(() => {
-    if (!list) return [];
     return list
       .filter((q) => answers[q.id])
       .map((q) => ({ q, correct: isAnswerCorrect(q.choices, new Set(answers[q.id])) }));
   }, [list, answers]);
-
-  if (!list) return <p className="card p-6 text-muted">Chargement…</p>;
-  if (list.length === 0) {
-    return (
-      <div className="card space-y-3 p-6">
-        <p>Aucune erreur à revoir. Bravo !</p>
-        <Link href={`/modules/${moduleSlug}`} className="btn btn-ghost">
-          Retour au module
-        </Link>
-      </div>
-    );
-  }
 
   const restart = (subset: QuestionWithChoices[]) => {
     setList(subset);
@@ -271,8 +246,8 @@ export function Quiz({
   };
 
   const validate = () => {
-    const correct = isAnswerCorrect(q.choices, selected);
-    recordAnswer(moduleId, q.id, correct);
+    // Saved to the account (progress on every device + admin statistics). Never blocks the quiz.
+    recordAttempt({ questionId: q.id, selected: [...selected], mode }).catch(() => {});
     setAnswers((prev) => ({ ...prev, [q.id]: [...selected] }));
     if (mode === "practice") setRevealed(true);
     else goNext();
