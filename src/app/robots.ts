@@ -7,7 +7,9 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/admin", "/api", "/compte", "/auth", "/demo", "/*?next="],
+        // /admin and /compte stay crawlable on purpose: they carry noindex, which crawlers only see if
+        // they may fetch the page. A robots.txt block alone can still leave the URL in results.
+        disallow: ["/api", "/auth", "/demo", "/*?next="],
       },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,
